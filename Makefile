@@ -14,7 +14,8 @@ VERSION=1.4.0
 #
 #  If you're not using GCC, then you'll have to change the CFLAGS.
 #
-CFLAGS += -Wall -fPIC
+# structured this way instead of += so configured CFLAGS can override -Wall
+CFLAGS := -Wall -fPIC ${CFLAGS}
 
 #
 # On Irix, use this with MIPSPRo C Compiler, and don't forget to export CC=cc
