@@ -1,0 +1,4 @@
+lib/security
+etc
+usr/share/doc/libpam-radius-auth/html
+usr/share/pam-configs

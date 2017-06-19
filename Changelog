@@ -1,7 +1,17 @@
 1.4.0
 -----
 
-   Many changes.  See USAGE for details.
+   Many changes over 5 years:
+    src_ip in config file
+    ipv6 support
+    configure can use poll or select
+    Add Calling-Station-Id to accounting requests
+    mostly thread safe
+    add force_prompt option to enforce new password prompt for use with Tok
+    NetBSD fixes
+    new parameter max_challenge limits number of Access-Challenges
+    build: do not force flags, add to them instead.
+    build: use GCC for build, and ensure that unneeded symbols are not exported.
 
 1.3.17
 ------

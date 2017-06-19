@@ -578,12 +578,12 @@ MFLAGS=
 MAKEFLAGS=
 
 # Identity of this package.
-PACKAGE_NAME='pam_radius'
-PACKAGE_TARNAME='pam_radius'
-PACKAGE_VERSION='1.5'
-PACKAGE_STRING='pam_radius 1.5'
-PACKAGE_BUGREPORT='http://bugs.freeradius.org'
-PACKAGE_URL='http://www.freeradius.org'
+PACKAGE_NAME='libpam-radius-auth'
+PACKAGE_TARNAME='libpam-radius-auth'
+PACKAGE_VERSION='1.4.1'
+PACKAGE_STRING='pam_radius 1.4.1'
+PACKAGE_BUGREPORT='http://support.cumulusnetworks.com'
+PACKAGE_URL='http://www.cumulusnetworks.com'
 
 ac_unique_file="src/pam_radius_auth.c"
 # Factoring default headers for most tests.
@@ -1339,7 +1339,7 @@ Some influential environment variables:
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
 
-Report bugs to <http://bugs.freeradius.org>.
+Report bugs to <http://www.cumulusnetworks.com>.
 pam_radius home page: <http://www.freeradius.org>.
 _ACEOF
 ac_status=$?
@@ -1601,7 +1601,7 @@ $as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >
     { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
 $as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
 ( $as_echo "## ----------------------------------------- ##
-## Report this to http://bugs.freeradius.org ##
+## Report this to http://www.cumulusnetworks.com ##
 ## ----------------------------------------- ##"
      ) | sed "s/^/$as_me: WARNING:     /" >&2
     ;;
@@ -5831,7 +5831,7 @@ Usage: $0 [OPTION]... [TAG]...
 Configuration headers:
 $config_headers
 
-Report bugs to <http://bugs.freeradius.org>.
+Report bugs to <http://www.cumulusnetworks.com>.
 pam_radius home page: <http://www.freeradius.org>."
 
 _ACEOF

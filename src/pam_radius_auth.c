@@ -525,13 +525,14 @@ static int initialize(radius_conf_t *conf, int accounting)
 	struct sockaddr_storage salocal6;
 	char hostname[BUFFER_SIZE];
 	char secret[BUFFER_SIZE];
+	char *vrfname = NULL;
 
 	char buffer[BUFFER_SIZE];
 	char *p;
 	FILE *fserver;
-	radius_server_t *server = NULL;
+	radius_server_t *server = NULL, *tmp;
 	int timeout;
-	int line = 0;
+	int line = 0, scancnt;
 	char src_ip[MAX_IP_LEN];
 	int seen_v6 = 0;
 
@@ -572,48 +573,73 @@ static int initialize(radius_conf_t *conf, int accounting)
 			break;
 		}
 
-		timeout = 3;
-		src_ip[0] = 0;
-		if (sscanf(p, "%s %s %d %s", hostname, secret, &timeout, src_ip) < 2) {
-			_pam_log(LOG_ERR, "ERROR reading %s, line %d: Could not read hostname or secret\n",
-				 conf->conf_file, line);
-			continue;			/* invalid line */
-		} else {				/* read it in and save the data */
-			radius_server_t *tmp;
+		scancnt = sscanf(p, "%s %s %d %s", hostname, secret, &timeout, src_ip);
 
-			tmp = malloc(sizeof(radius_server_t));
-			if (server) {
-				server->next = tmp;
-				server = server->next;
-			} else {
-				conf->server = tmp;
-				server= tmp;		/* first time */
-			}
+		/* is it the name of a vrf we should bind to? */
+		if (!strcmp(hostname, "vrf-name")) {
+			if (scancnt < 2)
+			  _pam_log(LOG_ERR, "ERROR reading %s, line %d: only %d fields\n",
+				   conf->conf_file, line, scancnt);
+			else
+			  vrfname = strdup(secret);
+			continue;
+		}
 
-			/* sometime later do memory checks here */
-			server->hostname = strdup(hostname);
-			server->secret = strdup(secret);
-			server->accounting = accounting;
+		/*	allow setting debug in config file as well */
+		if (!strcmp(hostname, "debug")) {
+			if (scancnt < 1)
+			  _pam_log(LOG_ERR, "ERROR reading %s, line %d: only %d fields\n",
+				   conf->conf_file, line, scancnt);
+			else
+			  conf->debug = 1;
+			continue;
+		}
 
-			if ((timeout < 1) || (timeout > 60)) {
-				server->timeout = 3;
-			} else {
-				server->timeout = timeout;
-			}
-			server->next = NULL;
+		if (scancnt < 2) {
+			_pam_log(LOG_ERR, "ERROR reading %s, line %d: only %d fields\n",
+			   conf->conf_file, line, scancnt);
+			continue; /* invalid line */
+		}
+		if (scancnt < 4) {
+			src_ip[0] = 0;
+			if (scancnt < 3)
+			   timeout = 3; /*  default timeout */
+		}
 
-			if (src_ip[0]) {
-				memset(&salocal, 0, sizeof(salocal));
-				get_ipaddr(src_ip, (struct sockaddr *)&salocal, NULL);
-				switch (salocal.ss_family) {
-					case AF_INET:
-						memcpy(&salocal4, &salocal, sizeof(salocal));
-						break;
-					case AF_INET6:
-						seen_v6 = 1;
-						memcpy(&salocal6, &salocal, sizeof(salocal));
-						break;
-				}
+		/* read it in and save the data */
+		tmp = malloc(sizeof(radius_server_t));
+		if (server) {
+			server->next = tmp;
+			server = server->next;
+		} else {
+			conf->server = tmp;
+			server= tmp;		/* first time */
+		}
+
+		/* sometime later do memory checks here */
+		server->hostname = strdup(hostname);
+		server->secret = strdup(secret);
+		server->accounting = accounting;
+
+		memset(&server->ip, 0, sizeof server->ip);
+		if ((timeout < 1) || (timeout > 60)) {
+			server->timeout = 3;
+		} else {
+			server->timeout = timeout;
+		}
+		server->next = NULL;
+
+		if (src_ip[0]) {
+			memset(&salocal, 0, sizeof(salocal));
+			get_ipaddr(src_ip, (struct sockaddr *)&salocal, NULL);
+			switch (salocal.ss_family) {
+				case AF_INET:
+					memcpy(&salocal4, &salocal, sizeof(salocal));
+					break;
+				case AF_INET6:
+					seen_v6 = 1;
+					memcpy(&salocal6, &salocal, sizeof(salocal));
+					break;
 			}
 		}
 	}
@@ -637,6 +663,17 @@ static int initialize(radius_conf_t *conf, int accounting)
 		get_error_string(errno, error_string, sizeof(error_string));
 		_pam_log(LOG_ERR, "Failed to open RADIUS socket: %s\n", error_string);
 		return PAM_AUTHINFO_UNAVAIL;
+	}
+
+	if (vrfname) {
+		/*  do not fail if the bind fails, connection may succeed */
+		if (setsockopt(conf->sockfd, SOL_SOCKET, SO_BINDTODEVICE,
+		    vrfname, strlen(vrfname)+1) < 0)
+		   _pam_log(LOG_WARNING, "Binding socket to VRF %s failed: %m",
+		            vrfname);
+		else if(conf->debug)
+		    _pam_log(LOG_DEBUG, "Configured vrf as: %s", vrfname);
+		free(vrfname);
 	}
 
 #ifndef HAVE_POLL_H
@@ -1642,8 +1679,39 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, CONST c
  */
 PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh,int flags,int argc,CONST char **argv)
 {
-	int retval;
-	retval = PAM_SUCCESS;
+	int retval = PAM_SUCCESS;
+	CONST char *user;
+	radius_conf_t config;
+
+	(void) _pam_parse(argc, argv, &config);
+
+	/* grab the user name */
+	retval = pam_get_user(pamh, &user, NULL);
+	if (retval != PAM_SUCCESS || user == NULL || strlen(user) > MAXPWNAM) {
+		return PAM_USER_UNKNOWN;
+	}
+
+	/*
+	* parse the config file.  We don't make any connections here, so ignore
+	* any failures.  For consistency only.
+	*/
+	retval = initialize(&config, FALSE);
+
+	/*
+	* set SUDO_PROMPT in env so that it prompts as the login user, not the mapped
+	* user, unless (unlikely) the prompt has already been set.
+	* It won't hurt to do this if the user wasn't mapped.
+	*/
+	if (!pam_getenv(pamh, "SUDO_PROMPT")) {
+		  char nprompt[strlen("SUDO_PROMPT=[sudo] password for ") +
+		      strlen(user) + 3]; /* + 3 for ": " and the \0 */
+		  snprintf(nprompt, sizeof nprompt,
+			  "SUDO_PROMPT=[sudo] password for %s: ", user);
+		  if (pam_putenv(pamh, nprompt) != PAM_SUCCESS)
+		  	_pam_log(LOG_NOTICE, "failed to set PAM sudo prompt "
+				"(%s)", nprompt);
+	}
+
 	return retval;
 }
 

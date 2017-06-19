@@ -4,3 +4,6 @@ set -e
 
 # needed for install, upgrade, remove, and purge, including aborts
 pam-auth-update --package
+
+#DEBHELPER#
+

@@ -1,4 +1,4 @@
-  The module takes a number of configuration options.  Password changing
+This PAM module takes a number of configuration options.  Password changing
 is not implemented, as the RADIUS protocol does not support it.
 
   The pam configuration can be:
@@ -13,14 +13,17 @@ account    sufficient   pam_radius_auth.so
 the following strings.  Note that not all of these options are
 relevant in for all uses of the module.
 
+At a minimum, one server must be listed in the radius client configuration
+file
+
 debug          - print out extensive debugging information via pam_log.
                  These messages generally end up being handled by
                  sylog(), and go to /var/log/messages.  Depending on
                  your host operating system, the log messages may be
                  elsewhere.
-		 You should generally use the debug option when first
-		 trying to install the module, as it will help
-		 enormously in tracking down problems.
+                 You should generally use the debug option when first
+                 trying to install the module, as it will help
+                 enormously in tracking down problems.
 
 use_first_pass - Instead of prompting the user for a password, retrieve
                  the password from the previous authentication module.
@@ -54,7 +57,8 @@ skip_passwd    - Do not prompt for a password, even if there was none
                  Otherwise, no password is sent to the next module.
 
 conf=foo       - set the configuration filename to 'foo'.
-                 Default is /etc/raddb/server
+                 Default is /etc/raddb/server (/etc/pam_radius_auth.conf
+                 on Debian systems).
 
 client_id=bar  - send a NAS-Identifier RADIUS attribute with string
                  'bar'.  If the client_id is not specified, the PAM_SERVICE
@@ -63,8 +67,8 @@ client_id=bar  - send a NAS-Identifier RADIUS attribute with string
                  i.e. A blank client ID.
 
 retry = #      - How many times to re-send a packet if there is no
-		 response.  Once the retry count has been reached,
-		 the module fails, and PAM continues to the next module.
+                 response.  Once the retry count has been reached,
+                 the module fails, and PAM continues to the next module.
 
 use_authtok    - force the use of a previously entered password.
                  This is  needed for pluggable password strength checking

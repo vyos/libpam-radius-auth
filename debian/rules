@@ -7,7 +7,8 @@ ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
 else
 	CFLAGS += -O2
 endif
-CFLAGS+=-g3 -Wno-strict-aliasing -DCONF_FILE=\"/etc/pam_radius_auth.conf\"
+PAM_CONF_FILE=/etc/pam_radius_auth.conf
+CFLAGS+=-g3 -Wno-strict-aliasing -DCONF_FILE=\"${PAM_CONF_FILE}\"
 
 ifeq ($(DEB_HOST_GNU_CPU),(hppa|m68k|mips|powerpc|s390|sparc|sparc64|sheb))
 	CFLAGS += -DHIGHFIRST
@@ -17,6 +18,14 @@ export CFLAGS
 %:
 	dh  $@
 
-override_dh_auto_configure:
-	./configure
+# all the installing is here, not in Makefile.
+# The configuration file with the share secrets needs to be 600
+override_dh_install:
+	dh_install -v --sourcedir=.
+	chmod 600 debian/*/${PAM_CONF_FILE}
 
+override_dh_fixperms:
+	dh_fixperms --exclude ${PAM_CONF_FILE}
+
+override_dh_installchangelogs:
+	dh_installchangelogs Changelog

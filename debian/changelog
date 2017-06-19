@@ -1,8 +1,26 @@
+libpam-radius-auth (1.4.1-cl3u1) unstable; urgency=low
+
+  * Added support for mapping radius accounts to a local account
+    to get UID, GID, and base of home directory, so radius users
+    do not need to have an account created locally (or via LDAP)
+
+ -- Dave Olson <olson@cumulusnetworks.com>  Fri, 16 Jun 2017 15:44:12 -0700
+
 libpam-radius-auth (1.4.0) unstable; urgency=low
 
-   * Many changes.  See USAGE and git log for details.
+   * Many changes and bug fixes.  See USAGE and git log for details.
+   * src_ip in config file
+   * ipv6 support
+   * configure can use poll or select
+   * Add Calling-Station-Id to accounting requests
+   * mostly thread safe
+   * add force_prompt option to enforce new password prompt for use with Tok
+   * NetBSD fixes
+   * new parameter max_challenge limits number of Access-Challenges
+   * build: do not force flags, add to them instead.
+   * build: use GCC for build, and ensure that unneeded symbols are not exported.
 
- -- Alan T. DeKok <aland@freeradius.org>  Wed, 17 Dec 2014 17:00:59 -0500
+ -- Alan T. DeKok <aland@freeradius.org>  Thu, 23 Mar 2017 19:01:20 -0400
 
 libpam-radius-auth (1.3.17) unstable; urgency=low
 
@@ -13,10 +31,6 @@ libpam-radius-auth (1.3.17) unstable; urgency=low
   * Add 'localifdown' option.
 
  -- Arran Cudbard-Bell <a.cudbardb@freeradius.org>  Wed, 24 Oct 2012 08:18:01 +0100
-
-commit 0c3af1fb2a1ae1befb7a8e366406ded63cb9fa59
-
-    Note 1.4.0
 
 libpam-radius-auth (1.3.16-4.4) unstable; urgency=low
 

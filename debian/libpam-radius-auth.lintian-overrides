@@ -1,0 +1,9 @@
+# they are old, but current is GPL v3, so leaving old
+libpam-radius-auth binary: outdated-autotools-helper-file config.sub 2007-11-19
+libpam-radius-auth binary: outdated-autotools-helper-file config.guess 2007-11-19
+libpam-radius-auth binary: diff-contains-git-control-dir .git
+libpam-radius-auth binary: debhelper-but-no-misc-depends libpam-radius-auth
+libpam-radius-auth binary: unsupported-source-format 3.0 (git)
+libpam-radius-auth binary: source-nmu-has-incorrect-version-number 1.4.1
+
+
