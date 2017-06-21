@@ -524,7 +524,7 @@ static int initialize(radius_conf_t *conf, int accounting)
 	struct sockaddr_storage salocal6;
 	char hostname[BUFFER_SIZE];
 	char secret[BUFFER_SIZE];
-	char *vrfname = NULL;
+	char vrfname[64];
 
 	char buffer[BUFFER_SIZE];
 	char *p;
@@ -549,6 +549,7 @@ static int initialize(radius_conf_t *conf, int accounting)
 		return PAM_ABORT;
 	}
 
+    vrfname[0] = '\0';
 	while (!feof(fserver) && (fgets (buffer, sizeof(buffer), fserver) != (char*) NULL) && (!ferror(fserver))) {
 		line++;
 		p = buffer;
@@ -580,7 +581,7 @@ static int initialize(radius_conf_t *conf, int accounting)
 			  _pam_log(LOG_ERR, "ERROR reading %s, line %d: only %d fields\n",
 				   conf->conf_file, line, scancnt);
 			else
-			  vrfname = strdup(secret);
+              snprintf(vrfname, sizeof vrfname, "%s", secret);
 			continue;
 		}
 
@@ -664,17 +665,6 @@ static int initialize(radius_conf_t *conf, int accounting)
 		return PAM_AUTHINFO_UNAVAIL;
 	}
 
-	if (vrfname) {
-		/*  do not fail if the bind fails, connection may succeed */
-		if (setsockopt(conf->sockfd, SOL_SOCKET, SO_BINDTODEVICE,
-		    vrfname, strlen(vrfname)+1) < 0)
-		   _pam_log(LOG_WARNING, "Binding socket to VRF %s failed: %m",
-		            vrfname);
-		else if(conf->debug)
-		    _pam_log(LOG_DEBUG, "Configured vrf as: %s", vrfname);
-		free(vrfname);
-	}
-
 #ifndef HAVE_POLL_H
 	if (conf->sockfd >= FD_SETSIZE) {
 		_pam_log(LOG_ERR, "Unusable socket, FD is larger than %d\n", FD_SETSIZE);
@@ -682,6 +672,16 @@ static int initialize(radius_conf_t *conf, int accounting)
 		return PAM_AUTHINFO_UNAVAIL;
 	}
 #endif
+
+	if (vrfname[0]) {
+		/*  do not fail if the bind fails, connection may succeed */
+		if (setsockopt(conf->sockfd, SOL_SOCKET, SO_BINDTODEVICE,
+		    vrfname, strlen(vrfname)+1) < 0)
+		   _pam_log(LOG_WARNING, "Binding IPv4 socket to VRF %s failed: %m",
+		            vrfname);
+		else if(conf->debug)
+		    _pam_log(LOG_DEBUG, "Configured IPv4 vrf as: %s", vrfname);
+	}
 
 	/* set up the local end of the socket communications */
 	if (bind(conf->sockfd, (struct sockaddr *)&salocal4, sizeof (struct sockaddr_in)) < 0) {
@@ -711,6 +711,15 @@ static int initialize(radius_conf_t *conf, int accounting)
 		return PAM_AUTHINFO_UNAVAIL;
 	}
 #endif
+	if (vrfname[0]) {
+		/*  do not fail if the bind fails, connection may succeed */
+		if (setsockopt(conf->sockfd6, SOL_SOCKET, SO_BINDTODEVICE,
+		    vrfname, strlen(vrfname)+1) < 0)
+		   _pam_log(LOG_WARNING, "Binding IPv6 socket to VRF %s failed: %m",
+		            vrfname);
+		else if(conf->debug)
+		    _pam_log(LOG_DEBUG, "Configured IPv6 vrf as: %s", vrfname);
+	}
 
 	/* set up the local end of the socket communications */
 	if (bind(conf->sockfd6, (struct sockaddr *)&salocal6, sizeof (struct sockaddr_in6)) < 0) {
