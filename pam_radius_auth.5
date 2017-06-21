@@ -5,7 +5,7 @@
 .SH SYNOPSIS
 .B /etc/tacplus_servers
 is the RADIUS client configuration file for the PAM RADIUS client plugin.
-It contains the information on how to reach the RADIUS server(s), and 
+It contains the information on how to reach the RADIUS server(s), and
 because it contains the shared secret key, should be mode 600 and owned
 by root.
 .SH DESCRIPTION
@@ -40,7 +40,7 @@ deciding that the server has failed to respond.  It currently must be
 less than 60.
 .IP
 The optional src_ip may be used to configure the source IP address used
-in the RADIUS packets to the server.  The timeout field must be set if 
+in the RADIUS packets to the server.  The timeout field must be set if
 setting the src_ip is desired
 .TP
 .I vrf-name VRFNAME

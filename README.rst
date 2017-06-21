@@ -1,11 +1,11 @@
 pam_radius
 ----------
 
-|BuildStatus|_ 
+|BuildStatus|_
 
 This is the PAM to RADIUS authentication module.  It allows any
-Linux, OSX or Solaris machine to become a RADIUS client for 
-authentication and password change requests.  You will need to supply 
+Linux, OSX or Solaris machine to become a RADIUS client for
+authentication and password change requests.  You will need to supply
 your own RADIUS server to perform the actual authentication.
 
 The latest version has a simple merger of the original pam_radius
