@@ -227,7 +227,6 @@ static int host2server(int debug, radius_server_t *server)
 
 	server->ip = (struct sockaddr *)&server->ip_storage;
 	r = get_ipaddr(hostname, server->ip, port);
-	DPRINT(LOG_DEBUG, "DEBUG: get_ipaddr(%s) returned %d.\n", hostname, r);
 	return r;
 }
 
