@@ -1,9 +1,9 @@
 .TH pam_radius_auth 5
 .\" Copyright 2017 Cumulus Networks, Inc.  All rights reserved.
 .SH NAME
-/etc/pam_radius_auth.conf \- RADIUS client configuration file
+pam_radius_auth.conf \- RADIUS client configuration file
 .SH SYNOPSIS
-.B /etc/tacplus_servers
+.B /etc/pam_radius_auth.conf 
 is the RADIUS client configuration file for the PAM RADIUS client plugin.
 It contains the information on how to reach the RADIUS server(s), and
 because it contains the shared secret key, should be mode 600 and owned
@@ -48,7 +48,7 @@ If the management network is in a VRF, set this variable to the VRF name. This
 would  usually  be  "mgmt".  This is not normally needed with PAM.
 .SH "SEE ALSO"
 .BR pam_radius_auth (8),
-.BR mapuser_nss (5)
+.BR nss_mapuser (5)
 .SH FILES
 .I /etc/pam_radius_auth.conf
 - RADIUS client configuration parameters
