@@ -1,4 +1,4 @@
-libpam-radius-auth (1.4.1-cl3u1) unstable; urgency=low
+libpam-radius-auth (1.4.1-cl3u1) RELEASED; urgency=low
 
   * Added support for mapping radius accounts to a local account
     to get UID, GID, and base of home directory, so radius users
