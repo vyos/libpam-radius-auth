@@ -14,12 +14,22 @@ because the RADIUS protocol does not support it.
 This PAM module takes a number of standard PAM configuration options,
 as well as some specific to this plugin.
 .PP
-options can be added by editting the files in
+These options can be enabled by editing the generated entries in the
 .I /etc/pam.d
-or by editting the configuration file
+directory to add them to the radius plugin.  The files can be found by running
+the command:
+.IP
+.B grep radius /etc/pam.d/*
+.PP
+They can also be set by editing the configuration file
 .I /usr/share/pam-configs/radius
 and then running
-.BR pam-auth-config .
+.B pam-auth-config
+to re-generate the files in /etc/pam.d/.
+.BR NOTE :
+The file
+.I /usr/share/pam-configs/radius
+is not a configuration file, and may be overwritten on upgrades.
 .PP
 All of the following arguments are optional, and can be combined as needed.
 Note that not all of these options are relevant in for all uses of the module.
@@ -38,15 +48,19 @@ i.e. A blank client ID.
 .TP
 .I conf=foo
 set the configuration filename to 'foo'.
-Default is /etc/raddb/server (/etc/pam_radius_auth.conf
-on Debian systems).
+The default is
+.IR /etc/pam_radius_auth.conf .
 .TP
 .I debug
 print out extensive debugging information via pam_log.
 These messages generally end up being handled by
-sylog(), and go to /var/log/messages.  Depending on
+syslog(), and go to /var/log/messages.  Depending on
 your host operating system, the log messages may be
 elsewhere.
+.IP
+This variable may also be set in the
+.I /etc/pam_radius_auth
+file.  See that file for details.
 .IP
 You should generally use the debug option when first
 trying configuring this module, as it will help
@@ -54,7 +68,7 @@ enormously in tracking down problems.
 .TP
 .I force_prompt
 Request a new password and not using the previously entered
-password. This usefull for multi-factor authentication
+password. This useful for multi-factor authentication
 when used with a Token.
 .TP
 .I localifdown

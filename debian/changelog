@@ -1,3 +1,9 @@
+libpam-radius-auth (1.4.1-cl3u2) RELEASED; urgency=low
+
+  * Improved documentation in man pages
+
+ -- Dave Olson <olson@cumulusnetworks.com>  Tue, 23 Jan 2018 16:03:38 -0800
+
 libpam-radius-auth (1.4.1-cl3u1) RELEASED; urgency=low
 
   * Added support for mapping radius accounts to a local account

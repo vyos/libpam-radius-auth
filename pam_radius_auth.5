@@ -3,7 +3,7 @@
 .SH NAME
 pam_radius_auth.conf \- RADIUS client configuration file
 .SH SYNOPSIS
-.B /etc/pam_radius_auth.conf 
+.B /etc/pam_radius_auth.conf
 is the RADIUS client configuration file for the PAM RADIUS client plugin.
 It contains the information on how to reach the RADIUS server(s), and
 because it contains the shared secret key, should be mode 600 and owned
@@ -22,9 +22,15 @@ Not all keywords use all fields.
 Output PAM and RADIUS communication debugging information via syslog(3).
 .TP
 .I  server[:port] secret [timeout] [src_ip]
-the port name or number is optional.  The default port name is
-"radius", and is looked up from
+the port name or number is optional.  The default ports are not
+part of the code base, and are retrieved from
 .IR /etc/services .
+The ports used are
+.BR " radius "
+for authentication and
+.BR " radacct "
+for accounting.
+.P
 The timeout field is optional.  The default timeout is 3 seconds.
 .IP
 For IPv6 literal addresses, the address has to be surrounded  by
