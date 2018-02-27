@@ -1,3 +1,10 @@
+libpam-radius-auth (1.4.1-cl3u3) RELEASED; urgency=low
+
+  * Closes CM-19908 - Logging changed to use pam_syslog, log message format
+    now has program invoking, not just pam_radius_auth
+
+ -- Dave Olson <olson@cumulusnetworks.com>  Tue, 27 Feb 2018 14:47:22 -0800
+
 libpam-radius-auth (1.4.1-cl3u2) RELEASED; urgency=low
 
   * Improved documentation in man pages

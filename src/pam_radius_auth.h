@@ -17,6 +17,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <syslog.h>
+#include <security/pam_ext.h>
 #include <stdarg.h>
 #include <utmp.h>
 #include <time.h>

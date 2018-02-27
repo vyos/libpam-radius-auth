@@ -32,24 +32,21 @@
 
 #define DPRINT if (debug) _pam_log
 
-/* internal data */
-static CONST char *pam_module_name = "pam_radius_auth";
 
 /* logging */
-static void _pam_log(int err, CONST char *format, ...)
+static void _pam_log(pam_handle_t *pamh, int err, CONST char *format, ...)
 {
 	va_list args;
-	char buffer[BUFFER_SIZE];
 
-	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format, args);
-	/* don't do openlog or closelog, but put our name in to be friendly */
-	syslog(err, "%s: %s", pam_module_name, buffer);
-	va_end(args);
+    va_start(args, format);
+	pam_vsyslog(pamh, err, format, args);
+    va_end(args);
+
 }
 
 /* argument parsing */
-static int _pam_parse(int argc, CONST char **argv, radius_conf_t *conf)
+static int _pam_parse(pam_handle_t *pamh, int argc, CONST char **argv,
+    radius_conf_t *conf)
 {
 	int ctrl=0;
 
@@ -91,7 +88,8 @@ static int _pam_parse(int argc, CONST char **argv, radius_conf_t *conf)
 
 		} else if (!strncmp(*argv, "client_id=", 10)) {
 			if (conf->client_id) {
-				_pam_log(LOG_WARNING, "ignoring duplicate '%s'", *argv);
+				_pam_log(pamh, LOG_WARNING, "ignoring duplicate"
+					 " '%s'", *argv);
 			} else {
 				conf->client_id = (char *) *argv+10; /* point to the client-id */
 			}
@@ -107,7 +105,8 @@ static int _pam_parse(int argc, CONST char **argv, radius_conf_t *conf)
 
 		} else if (!strncmp(*argv, "prompt=", 7)) {
 			if (!strncmp(conf->prompt, (char*)*argv+7, MAXPROMPT)) {
-				_pam_log(LOG_WARNING, "ignoring duplicate '%s'", *argv);
+				_pam_log(pamh, LOG_WARNING, "ignoring duplicate"
+					 " '%s'", *argv);
 			} else {
 				/* truncate excessive prompts to (MAXPROMPT - 3) length */
 				if (strlen((char*)*argv+7) >= (MAXPROMPT - 3)) {
@@ -125,7 +124,8 @@ static int _pam_parse(int argc, CONST char **argv, radius_conf_t *conf)
 			conf->max_challenge = atoi(*argv+14);
 
 		} else {
-			_pam_log(LOG_WARNING, "unrecognized option '%s'", *argv);
+			_pam_log(pamh, LOG_WARNING, "unrecognized option '%s'",
+				 *argv);
 		}
 	}
 
@@ -517,7 +517,7 @@ static void cleanup(radius_server_t *server)
  * allocate and open a local port for communication with the RADIUS
  * server
  */
-static int initialize(radius_conf_t *conf, int accounting)
+static int initialize(pam_handle_t *pamh, radius_conf_t *conf, int accounting)
 {
 	struct sockaddr_storage salocal;
 	struct sockaddr_storage salocal4;
@@ -544,8 +544,8 @@ static int initialize(radius_conf_t *conf, int accounting)
 	if ((fserver = fopen (conf->conf_file, "r")) == (FILE*)NULL) {
 		char error_string[BUFFER_SIZE];
 		get_error_string(errno, error_string, sizeof(error_string));
-		_pam_log(LOG_ERR, "Could not open configuration file %s: %s\n",
-			conf->conf_file, error_string);
+		_pam_log(pamh, LOG_ERR, "Could not open configuration file %s:"
+			 " %s\n", conf->conf_file, error_string);
 		return PAM_ABORT;
 	}
 
@@ -568,8 +568,8 @@ static int initialize(radius_conf_t *conf, int accounting)
 		 *	Error out if the text is too long.
 		 */
 		if (!*p) {
-			_pam_log(LOG_ERR, "ERROR reading %s, line %d: Line too long\n",
-				 conf->conf_file, line);
+			_pam_log(pamh, LOG_ERR, "ERROR reading %s, line %d:"
+				 " Line too long\n", conf->conf_file, line);
 			break;
 		}
 
@@ -578,8 +578,9 @@ static int initialize(radius_conf_t *conf, int accounting)
 		/* is it the name of a vrf we should bind to? */
 		if (!strcmp(hostname, "vrf-name")) {
 			if (scancnt < 2)
-			  _pam_log(LOG_ERR, "ERROR reading %s, line %d: only %d fields\n",
-				   conf->conf_file, line, scancnt);
+			  _pam_log(pamh, LOG_ERR, "ERROR reading %s, line %d:"
+				   " only %d fields\n", conf->conf_file, line,
+				   scancnt);
 			else
               snprintf(vrfname, sizeof vrfname, "%s", secret);
 			continue;
@@ -588,16 +589,18 @@ static int initialize(radius_conf_t *conf, int accounting)
 		/*	allow setting debug in config file as well */
 		if (!strcmp(hostname, "debug")) {
 			if (scancnt < 1)
-			  _pam_log(LOG_ERR, "ERROR reading %s, line %d: only %d fields\n",
-				   conf->conf_file, line, scancnt);
+			  _pam_log(pamh, LOG_ERR, "ERROR reading %s, line %d:"
+				   " only %d fields\n", conf->conf_file, line,
+				   scancnt);
 			else
 			  conf->debug = 1;
 			continue;
 		}
 
 		if (scancnt < 2) {
-			_pam_log(LOG_ERR, "ERROR reading %s, line %d: only %d fields\n",
-			   conf->conf_file, line, scancnt);
+			_pam_log(pamh, LOG_ERR, "ERROR reading %s, line %d:"
+				 " only %d fields\n", conf->conf_file, line,
+				 scancnt);
 			continue; /* invalid line */
 		}
 		if (scancnt < 4) {
@@ -646,8 +649,8 @@ static int initialize(radius_conf_t *conf, int accounting)
 	fclose(fserver);
 
 	if (!server) {		/* no server found, die a horrible death */
-		_pam_log(LOG_ERR, "No RADIUS server found in configuration file %s\n",
-			 conf->conf_file);
+		_pam_log(pamh, LOG_ERR, "No RADIUS server found in"
+			 " configuration file %s\n", conf->conf_file);
 		return PAM_AUTHINFO_UNAVAIL;
 	}
 
@@ -661,13 +664,15 @@ static int initialize(radius_conf_t *conf, int accounting)
 	if (conf->sockfd < 0) {
 		char error_string[BUFFER_SIZE];
 		get_error_string(errno, error_string, sizeof(error_string));
-		_pam_log(LOG_ERR, "Failed to open RADIUS socket: %s\n", error_string);
+		_pam_log(pamh, LOG_ERR, "Failed to open RADIUS socket: %s\n",
+			 error_string);
 		return PAM_AUTHINFO_UNAVAIL;
 	}
 
 #ifndef HAVE_POLL_H
 	if (conf->sockfd >= FD_SETSIZE) {
-		_pam_log(LOG_ERR, "Unusable socket, FD is larger than %d\n", FD_SETSIZE);
+		_pam_log(pamh, LOG_ERR, "Unusable socket, FD is larger than"
+		    " %d\n", FD_SETSIZE);
 		close(conf->sockfd);
 		return PAM_AUTHINFO_UNAVAIL;
 	}
@@ -677,17 +682,19 @@ static int initialize(radius_conf_t *conf, int accounting)
 		/*  do not fail if the bind fails, connection may succeed */
 		if (setsockopt(conf->sockfd, SOL_SOCKET, SO_BINDTODEVICE,
 		    vrfname, strlen(vrfname)+1) < 0)
-		   _pam_log(LOG_WARNING, "Binding IPv4 socket to VRF %s failed: %m",
-		            vrfname);
+		   _pam_log(pamh, LOG_WARNING, "Binding IPv4 socket to VRF %s"
+			    " failed: %m", vrfname);
 		else if(conf->debug)
-		    _pam_log(LOG_DEBUG, "Configured IPv4 vrf as: %s", vrfname);
+		    _pam_log(pamh, LOG_DEBUG, "Configured IPv4 vrf as: %s",
+			     vrfname);
 	}
 
 	/* set up the local end of the socket communications */
 	if (bind(conf->sockfd, (struct sockaddr *)&salocal4, sizeof (struct sockaddr_in)) < 0) {
 		char error_string[BUFFER_SIZE];
 		get_error_string(errno, error_string, sizeof(error_string));
-		_pam_log(LOG_ERR, "Failed binding to port: %s", error_string);
+		_pam_log(pamh, LOG_ERR, "Failed binding to port: %s",
+		         error_string);
 		close(conf->sockfd);
 		return PAM_AUTHINFO_UNAVAIL;
 	}
@@ -699,13 +706,15 @@ static int initialize(radius_conf_t *conf, int accounting)
 			return PAM_SUCCESS;
 		char error_string[BUFFER_SIZE];
 		get_error_string(errno, error_string, sizeof(error_string));
-		_pam_log(LOG_ERR, "Failed to open RADIUS IPv6 socket: %s\n", error_string);
+		_pam_log(pamh, LOG_ERR, "Failed to open RADIUS IPv6 socket:"
+		    " %s\n", error_string);
 		close(conf->sockfd);
 		return PAM_AUTHINFO_UNAVAIL;
 	}
 #ifndef HAVE_POLL_H
 	if (conf->sockfd6 >= FD_SETSIZE) {
-		_pam_log(LOG_ERR, "Unusable socket, FD is larger than %d\n", FD_SETSIZE);
+		_pam_log(pamh, LOG_ERR, "Unusable socket, FD is larger than"
+		    " %d\n", FD_SETSIZE);
 		close(conf->sockfd);
 		close(conf->sockfd6);
 		return PAM_AUTHINFO_UNAVAIL;
@@ -715,17 +724,19 @@ static int initialize(radius_conf_t *conf, int accounting)
 		/*  do not fail if the bind fails, connection may succeed */
 		if (setsockopt(conf->sockfd6, SOL_SOCKET, SO_BINDTODEVICE,
 		    vrfname, strlen(vrfname)+1) < 0)
-		   _pam_log(LOG_WARNING, "Binding IPv6 socket to VRF %s failed: %m",
-		            vrfname);
+		   _pam_log(pamh, LOG_WARNING, "Binding IPv6 socket to VRF %s"
+			    " failed: %m", vrfname);
 		else if(conf->debug)
-		    _pam_log(LOG_DEBUG, "Configured IPv6 vrf as: %s", vrfname);
+		    _pam_log(pamh, LOG_DEBUG, "Configured IPv6 vrf as: %s",
+			     vrfname);
 	}
 
 	/* set up the local end of the socket communications */
 	if (bind(conf->sockfd6, (struct sockaddr *)&salocal6, sizeof (struct sockaddr_in6)) < 0) {
 		char error_string[BUFFER_SIZE];
 		get_error_string(errno, error_string, sizeof(error_string));
-		_pam_log(LOG_ERR, "Failed binding to IPv6 port: %s", error_string);
+		_pam_log(pamh, LOG_ERR, "Failed binding to IPv6 port: %s",
+			 error_string);
 		close(conf->sockfd);
 		close(conf->sockfd6);
 		return PAM_AUTHINFO_UNAVAIL;
@@ -788,7 +799,7 @@ static void build_radius_packet(AUTH_HDR *request, CONST char *user, CONST char 
  * Send a packet and get the response
  */
 static int talk_radius(radius_conf_t *conf, AUTH_HDR *request, AUTH_HDR *response,
-		       char *password, char *old_password, int tries)
+		       char *password, char *old_password, int tries, pam_handle_t *pamh)
 {
 	int total_length;
 #ifdef HAVE_POLL_H
@@ -827,7 +838,7 @@ static int talk_radius(radius_conf_t *conf, AUTH_HDR *request, AUTH_HDR *respons
 		/* only look up IP information as necessary */
 		retval = host2server(conf->debug, server);
 		if (retval != 0) {
-			_pam_log(LOG_ERR,
+			_pam_log(pamh, LOG_ERR,
 				 "Failed looking up IP address for RADIUS server %s (error=%s)",
 				 server->hostname, gai_strerror(retval));
 			ok = FALSE;
@@ -847,8 +858,9 @@ static int talk_radius(radius_conf_t *conf, AUTH_HDR *request, AUTH_HDR *respons
 			   server->ip, sizeof(struct sockaddr_storage)) < 0) {
 			char error_string[BUFFER_SIZE];
 			get_error_string(errno, error_string, sizeof(error_string));
-			_pam_log(LOG_ERR, "Error sending RADIUS packet to server %s: %s",
-				 server->hostname, error_string);
+			_pam_log(pamh, LOG_ERR, "Error sending RADIUS packet to"
+				 " server %s: %s", server->hostname,
+				 error_string);
 			ok = FALSE;
 			goto next;		/* skip to the next server */
 		}
@@ -880,7 +892,8 @@ static int talk_radius(radius_conf_t *conf, AUTH_HDR *request, AUTH_HDR *respons
 
 			/* timed out */
 			if (rcode == 0) {
-				_pam_log(LOG_ERR, "RADIUS server %s failed to respond", server->hostname);
+				_pam_log(pamh, LOG_ERR, "RADIUS server %s"
+				    " failed to respond", server->hostname);
 				if (--server_tries) {
 					goto send;
 				}
@@ -893,7 +906,9 @@ static int talk_radius(radius_conf_t *conf, AUTH_HDR *request, AUTH_HDR *respons
 					time(&now);
 
 					if (now > end) {
-						_pam_log(LOG_ERR, "RADIUS server %s failed to respond",
+						_pam_log(pamh, LOG_ERR,
+							 "RADIUS server %s "
+							 "failed to respond",
 							 server->hostname);
 						if (--server_tries) goto send;
 						ok = FALSE;
@@ -907,7 +922,9 @@ static int talk_radius(radius_conf_t *conf, AUTH_HDR *request, AUTH_HDR *respons
 				} else {			/* not an interrupt, it was a real error */
 					char error_string[BUFFER_SIZE];
 					get_error_string(errno, error_string, sizeof(error_string));
-					_pam_log(LOG_ERR, "Error waiting for response from RADIUS server %s: %s",
+					_pam_log(pamh, LOG_ERR, "Error waiting"
+						 " for response from RADIUS"
+						 " server %s: %s",
 						 server->hostname, error_string);
 					ok = FALSE;
 					break;
@@ -925,8 +942,10 @@ static int talk_radius(radius_conf_t *conf, AUTH_HDR *request, AUTH_HDR *respons
 							     0, NULL, NULL)) < 0) {
 					char error_string[BUFFER_SIZE];
 					get_error_string(errno, error_string, sizeof(error_string));
-					_pam_log(LOG_ERR, "error reading RADIUS packet from server %s: %s",
-					 	 server->hostname, error_string);
+					_pam_log(pamh, LOG_ERR, "error reading"
+						 " RADIUS packet from server"
+						 " %s: %s", server->hostname,
+						 error_string);
 					ok = FALSE;
 					break;
 
@@ -936,7 +955,10 @@ static int talk_radius(radius_conf_t *conf, AUTH_HDR *request, AUTH_HDR *respons
 
 					if ((ntohs(response->length) != total_length) ||
 					    (ntohs(response->length) > BUFFER_SIZE)) {
-						_pam_log(LOG_ERR, "RADIUS packet from server %s is corrupted",
+						_pam_log(pamh, LOG_ERR,
+							 "RADIUS packet from "
+							 "server %s is "
+							 "corrupted",
 						 	 server->hostname);
 						ok = FALSE;
 						break;
@@ -962,8 +984,12 @@ static int talk_radius(radius_conf_t *conf, AUTH_HDR *request, AUTH_HDR *respons
 					}
 
 					if (!verify_packet(p, response, request)) {
-						_pam_log(LOG_ERR, "packet from RADIUS server %s failed verification: "
-							 "The shared secret is probably incorrect.", server->hostname);
+						_pam_log(pamh, LOG_ERR, "packet"
+							 " from RADIUS server %s"
+							 " failed verification:"
+							 " The shared secret is"
+							 " probably incorrect.",
+							 server->hostname);
 						ok = FALSE;
 						break;
 					}
@@ -972,8 +998,12 @@ static int talk_radius(radius_conf_t *conf, AUTH_HDR *request, AUTH_HDR *respons
 					 * Check that the response ID matches the request ID.
 					 */
 					if (response->id != request->id) {
-						_pam_log(LOG_WARNING, "Response packet ID %d does not match the "
-							 "request packet ID %d: verification of packet fails",
+						_pam_log(pamh, LOG_WARNING,
+							 "Response packet ID %d"
+							 " does not match the"
+							 " request packet ID"
+							 " %d: verification of"
+							 " packet fails",
 							 response->id, request->id);
 						ok = FALSE;
 						break;
@@ -1031,7 +1061,7 @@ static int talk_radius(radius_conf_t *conf, AUTH_HDR *request, AUTH_HDR *respons
 	}
 
 	if (!server) {
-		_pam_log(LOG_ERR, "All RADIUS servers failed to respond.");
+		_pam_log(pamh, LOG_ERR, "All RADIUS servers failed to respond");
 		if (conf->localifdown)
 			retval = PAM_IGNORE;
 		else
@@ -1116,7 +1146,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh,int flags,int argc,CONST c
 	AUTH_HDR *response = (AUTH_HDR *) recv_buffer;
 	radius_conf_t config;
 
-	ctrl = _pam_parse(argc, argv, &config);
+	ctrl = _pam_parse(pamh, argc, argv, &config);
 	debug = config.debug;
 
 	/* grab the user name */
@@ -1129,21 +1159,21 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh,int flags,int argc,CONST c
 		*pret = PAM_USER_UNKNOWN;
 		pam_set_data(pamh, "rad_setcred_return", (void *) pret, _int_free);
 
-		DPRINT(LOG_DEBUG, "User name was NULL, or too long");
+		DPRINT(pamh, LOG_DEBUG, "User name was NULL, or too long");
 		return PAM_USER_UNKNOWN;
 	}
-	DPRINT(LOG_DEBUG, "Got user name %s", user);
+	DPRINT(pamh, LOG_DEBUG, "Got user name %s", user);
 
 	if (ctrl & PAM_RUSER_ARG) {
 		retval = pam_get_item(pamh, PAM_RUSER, (CONST void **) &userinfo);
 		PAM_FAIL_CHECK;
-		DPRINT(LOG_DEBUG, "Got PAM_RUSER name %s", userinfo);
+		DPRINT(pamh, LOG_DEBUG, "Got PAM_RUSER name %s", userinfo);
 
 		if (!strcmp("root", user)) {
 			user = userinfo;
-			DPRINT(LOG_DEBUG, "Username now %s from ruser", user);
+			DPRINT(pamh, LOG_DEBUG, "Username now %s from ruser", user);
 		} else {
-			DPRINT(LOG_DEBUG, "Skipping ruser for non-root auth");
+			DPRINT(pamh, LOG_DEBUG, "Skipping ruser for non-root auth");
 		}
 	}
 
@@ -1151,7 +1181,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh,int flags,int argc,CONST c
 	 * Get the IP address of the authentication server
 	 * Then, open a socket, and bind it to a port
 	 */
-	retval = initialize(&config, FALSE);
+	retval = initialize(pamh, &config, FALSE);
 	PAM_FAIL_CHECK;
 
 	/*
@@ -1174,14 +1204,14 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh,int flags,int argc,CONST c
 
 	/* grab the password (if any) from the previous authentication layer */
         if (!config.force_prompt) {
-                DPRINT(LOG_DEBUG, "ignore last_pass, force_prompt set");
+                DPRINT(pamh, LOG_DEBUG, "ignore last_pass, force_prompt set");
 		retval = pam_get_item(pamh, PAM_AUTHTOK, (CONST void **) &password);
 		PAM_FAIL_CHECK;
         }
 
 	if (password) {
 		password = strdup(password);
-		DPRINT(LOG_DEBUG, "Got password %s", password);
+		DPRINT(pamh, LOG_DEBUG, "Got password %s", password);
 	}
 
 	/* no previous password: maybe get one from the user */
@@ -1218,12 +1248,13 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh,int flags,int argc,CONST c
 			strlen(rhost));
 	}
 
-	DPRINT(LOG_DEBUG, "Sending RADIUS request code %d", request->code);
+	DPRINT(pamh, LOG_DEBUG, "Sending RADIUS request code %d", request->code);
 
-	retval = talk_radius(&config, request, response, password, NULL, config.retries + 1);
+	retval = talk_radius(&config, request, response, password, NULL,
+			     config.retries + 1, pamh);
 	PAM_FAIL_CHECK;
 
-	DPRINT(LOG_DEBUG, "Got RADIUS response code %d", response->code);
+	DPRINT(pamh, LOG_DEBUG, "Got RADIUS response code %d", response->code);
 
 	/*
 	 *	If we get an authentication failure, and we sent a NULL password,
@@ -1240,7 +1271,9 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh,int flags,int argc,CONST c
 		if (((a_state = find_attribute(response, PW_STATE)) == NULL) ||
 		    ((a_reply = find_attribute(response, PW_REPLY_MESSAGE)) == NULL)) {
 			/* Actually, State isn't required. */
-			_pam_log(LOG_ERR, "RADIUS Access-Challenge received with State or Reply-Message missing");
+			_pam_log(pamh, LOG_ERR, "RADIUS Access-Challenge"
+				 " received with State or Reply-Message"
+				 " missing");
 			retval = PAM_AUTHINFO_UNAVAIL;
 			goto do_next;
 		}
@@ -1249,7 +1282,9 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh,int flags,int argc,CONST c
 		 *	Security fixes.
 		 */
 		if ((a_state->length <= 2) || (a_reply->length <= 2)) {
-			_pam_log(LOG_ERR, "RADIUS Access-Challenge received with invalid State or Reply-Message");
+			_pam_log(pamh, LOG_ERR, "RADIUS Access-Challenge"
+				 " received with invalid State or"
+				 " Reply-Message");
 			retval = PAM_AUTHINFO_UNAVAIL;
 			goto do_next;
 		}
@@ -1274,10 +1309,12 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh,int flags,int argc,CONST c
 		/* copy the state over from the servers response */
 		add_attribute(request, PW_STATE, a_state->data, a_state->length - 2);
 
-		retval = talk_radius(&config, request, response, resp2challenge, NULL, 1);
+		retval = talk_radius(&config, request, response, resp2challenge, NULL,
+            1, pamh);
 		PAM_FAIL_CHECK;
 
-		DPRINT(LOG_DEBUG, "Got response to challenge code %d", response->code);
+		DPRINT(pamh, LOG_DEBUG, "Got response to challenge code %d",
+            response->code);
 
 		/*
 		 * max_challenge limits the # of challenges a server can issue
@@ -1286,7 +1323,8 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh,int flags,int argc,CONST c
 		if (config.max_challenge > 0 && response->code == PW_ACCESS_CHALLENGE) {
 			num_challenge++;
 			if (num_challenge >= config.max_challenge) {
-				DPRINT(LOG_DEBUG, "maximum number of challenges (%d) reached, failing", num_challenge);
+				DPRINT(pamh, LOG_DEBUG, "maximum number of challenges (%d)"
+                    " reached, failing", num_challenge);
 				break;
 			}
 		}
@@ -1305,7 +1343,8 @@ do_next:
 		pam_set_item(pamh, PAM_AUTHTOK, password);
 	}
 
-	DPRINT(LOG_DEBUG, "authentication %s", retval==PAM_SUCCESS ? "succeeded":"failed");
+	DPRINT(pamh, LOG_DEBUG, "authentication %s",
+        retval==PAM_SUCCESS ? "succeeded":"failed");
 
 	close(config.sockfd);
 	if (config.sockfd6 >= 0)
@@ -1352,7 +1391,7 @@ static int pam_private_session(pam_handle_t *pamh, int flags, int argc, CONST ch
 	AUTH_HDR *response = (AUTH_HDR *) recv_buffer;
 	radius_conf_t config;
 
-	(void) _pam_parse(argc, argv, &config);
+	(void) _pam_parse(pamh, argc, argv, &config);
 
 	/* grab the user name */
 	retval = pam_get_user(pamh, &user, NULL);
@@ -1367,7 +1406,7 @@ static int pam_private_session(pam_handle_t *pamh, int flags, int argc, CONST ch
 	 * Get the IP address of the authentication server
 	 * Then, open a socket, and bind it to a port
 	 */
-	retval = initialize(&config, TRUE);
+	retval = initialize(pamh, &config, TRUE);
 	PAM_FAIL_CHECK;
 
 	/*
@@ -1422,7 +1461,7 @@ static int pam_private_session(pam_handle_t *pamh, int flags, int argc, CONST ch
 			strlen(rhost));
 	}
 
-	retval = talk_radius(&config, request, response, NULL, NULL, 1);
+	retval = talk_radius(&config, request, response, NULL, NULL, 1, pamh);
 	PAM_FAIL_CHECK;
 
 	/* oops! They don't have the right password.	Complain and die. */
@@ -1473,7 +1512,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, CONST c
 	AUTH_HDR *response = (AUTH_HDR *) recv_buffer;
 	radius_conf_t config;
 
-	ctrl = _pam_parse(argc, argv, &config);
+	ctrl = _pam_parse(pamh, argc, argv, &config);
 
 	/* grab the user name */
 	retval = pam_get_user(pamh, &user, NULL);
@@ -1488,7 +1527,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, CONST c
 	 * Get the IP address of the authentication server
 	 * Then, open a socket, and bind it to a port
 	 */
-	retval = initialize(&config, FALSE);
+	retval = initialize(pamh, &config, FALSE);
 	PAM_FAIL_CHECK;
 
 	/*
@@ -1537,7 +1576,7 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, CONST c
 		build_radius_packet(request, user, password, &config);
 		add_int_attribute(request, PW_USER_SERVICE_TYPE, PW_AUTHENTICATE_ONLY);
 
-		retval = talk_radius(&config, request, response, password, NULL, 1);
+		retval = talk_radius(&config, request, response, password, NULL, 1, pamh);
 		PAM_FAIL_CHECK;
 
 		/* oops! They don't have the right password.	Complain and die. */
@@ -1640,7 +1679,8 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, CONST c
 		build_radius_packet(request, user, new_password, &config);
 		add_password(request, PW_OLD_PASSWORD, password, password);
 
-		retval = talk_radius(&config, request, response, new_password, password, 1);
+		retval = talk_radius(&config, request, response, new_password, password,
+            1, pamh);
 		PAM_FAIL_CHECK;
 
 		/* Whew! Done password changing, check for password acknowledge */
@@ -1668,7 +1708,8 @@ PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, CONST c
 	}
 
 	if (ctrl & PAM_DEBUG_ARG) {
-		_pam_log(LOG_DEBUG, "password change %s", retval==PAM_SUCCESS ? "succeeded" : "failed");
+		_pam_log(pamh, LOG_DEBUG, "password change %s",
+			 retval==PAM_SUCCESS ? "succeeded" : "failed");
 	}
 
 	close(config.sockfd);
@@ -1691,7 +1732,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh,int flags,int argc,CONST char
 	CONST char *user;
 	radius_conf_t config;
 
-	(void) _pam_parse(argc, argv, &config);
+	(void) _pam_parse(pamh, argc, argv, &config);
 
 	/* grab the user name */
 	retval = pam_get_user(pamh, &user, NULL);
@@ -1703,7 +1744,7 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh,int flags,int argc,CONST char
 	* parse the config file.  We don't make any connections here, so ignore
 	* any failures.  For consistency only.
 	*/
-	retval = initialize(&config, FALSE);
+	retval = initialize(pamh, &config, FALSE);
 
 	/*
 	* set SUDO_PROMPT in env so that it prompts as the login user, not the mapped
@@ -1716,8 +1757,8 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh,int flags,int argc,CONST char
 		  snprintf(nprompt, sizeof nprompt,
 			  "SUDO_PROMPT=[sudo] password for %s: ", user);
 		  if (pam_putenv(pamh, nprompt) != PAM_SUCCESS)
-		  	_pam_log(LOG_NOTICE, "failed to set PAM sudo prompt "
-				"(%s)", nprompt);
+			_pam_log(pamh, LOG_NOTICE, "failed to set PAM sudo"
+				" prompt (%s)", nprompt);
 	}
 
 	return retval;
@@ -1737,4 +1778,3 @@ struct pam_module _pam_radius_modstruct = {
 	pam_sm_chauthtok,
 };
 #endif
-
