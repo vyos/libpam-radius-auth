@@ -20,6 +20,7 @@
 #include <security/pam_ext.h>
 #include <stdarg.h>
 #include <utmp.h>
+#include <pwd.h>
 #include <time.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -49,7 +50,7 @@
 
 /* Defaults for the prompt option */
 #define MAXPROMPT 33		/* max prompt length, including '\0' */
-#define DEFAULT_PROMPT "Password"	/* default prompt, without the ': '  */
+#define DEFAULT_PROMPT "Password: "	/* default prompt, */
 
 /*************************************************************************
  * Platform specific defines
@@ -127,26 +128,38 @@ typedef struct attribute_t {
 typedef struct radius_server_t {
 	struct radius_server_t *next;
 	struct sockaddr_storage ip_storage;
+	struct sockaddr_storage ipacct_storage;
 	struct sockaddr *ip;
+	struct sockaddr *ip_acct;
 	char *hostname;
+	char *hostpart;
 	char *secret;
+	char *port;
 	int timeout;
-	int accounting;
+	int sockfd;
+	int family;
+	char src_ip[MAX_IP_LEN];
 } radius_server_t;
 
 typedef struct radius_conf_t {
 	radius_server_t *server;
+	char *client_id;
+	CONST char *conf_file;
 	int retries;
 	int localifdown;
-	char *client_id;
 	int accounting_bug;
 	int force_prompt;
 	int max_challenge;
-	int sockfd;
-	int sockfd6;
 	int debug;
-	CONST char *conf_file;
+	int min_priv_lvl;
 	char prompt[MAXPROMPT];
+	char vrfname[64];
 } radius_conf_t;
+
+void __write_mapfile(pam_handle_t * p, const char *usr, uid_t uid, int priv,
+		     int dbg);
+int __remove_mapfile(pam_handle_t * pamh, const char *user, int dbg);
+void __chk_homedir(pam_handle_t * p, const char *usr, const char *home,
+		   int dbg);
 
 #endif				/* PAM_RADIUS_H */

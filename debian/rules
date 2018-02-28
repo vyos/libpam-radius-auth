@@ -16,7 +16,7 @@ endif
 export CFLAGS
 
 %:
-	dh  $@
+	dh $@ --with autoreconf
 
 # all the installing is here, not in Makefile.
 # The configuration file with the share secrets needs to be 600

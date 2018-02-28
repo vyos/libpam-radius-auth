@@ -1,5 +1,5 @@
 .TH pam_radius_auth 5
-.\" Copyright 2017 Cumulus Networks, Inc.  All rights reserved.
+.\" Copyright 2017, 2018 Cumulus Networks, Inc.  All rights reserved.
 .SH NAME
 pam_radius_auth.conf \- RADIUS client configuration file
 .SH SYNOPSIS
@@ -23,13 +23,19 @@ Output PAM and RADIUS communication debugging information via syslog(3).
 .TP
 .I  server[:port] secret [timeout] [src_ip]
 the port name or number is optional.  The default ports are not
-part of the code base, and are retrieved from
+part of the code base, and are retrieved from the services database, e.g.
 .IR /etc/services .
 The ports used are
-.BR " radius "
+.B radius
 for authentication and
-.BR " radacct "
+.B radacct
 for accounting.
+If the port is specified as numeric, port+1 is used as the accounting
+port.   If a name is used for the port that is not
+.BR radius ,
+.B radacct
+is still used for accounting.   There is no way to specify a port to
+be used just for accounting.
 .P
 The timeout field is optional.  The default timeout is 3 seconds.
 .IP
@@ -52,6 +58,14 @@ setting the src_ip is desired
 .I vrf-name VRFNAME
 If the management network is in a VRF, set this variable to the VRF name. This
 would  usually  be  "mgmt".  This is not normally needed with PAM.
+.TP
+.I priv-lvl VALUE
+This sets the minimum privilege level in VSA attribute
+.B shell:priv-lvl=VALUE
+to be considered a
+privileged login (ability to configure via nclu 'net' commands, and able to sudo.
+The default is 15.  The range is 0-15.  Only matters when the VSA attribute is
+returned.
 .SH "SEE ALSO"
 .BR pam_radius_auth (8),
 .BR nss_mapuser (5)

@@ -36,11 +36,11 @@
 #define AUTH_STRING_LEN		128	/* maximum of 254 */
 
 typedef struct pw_auth_hdr {
-	uint8_t		code;
-	uint8_t		id;
-	uint16_t	length;
-	uint8_t		vector[AUTH_VECTOR_LEN];
-	uint8_t		data[2];
+	uint8_t code;
+	uint8_t id;
+	uint16_t length;
+	uint8_t vector[AUTH_VECTOR_LEN];
+	uint8_t data[2];
 } AUTH_HDR;
 
 #define AUTH_HDR_LEN			20
@@ -53,7 +53,6 @@ typedef struct pw_auth_hdr {
 #define PW_TYPE_INTEGER			1
 #define PW_TYPE_IPADDR			2
 #define PW_TYPE_DATE			3
-
 
 #define	PW_AUTHENTICATION_REQUEST	1
 #define	PW_AUTHENTICATION_ACK		2
@@ -91,21 +90,21 @@ typedef struct pw_auth_hdr {
 #define PW_FRAMED_ROUTE			22
 #define PW_FRAMED_IPXNET		23
 #define PW_STATE			24
-#define PW_CLASS                        25      /* string */
-#define PW_VENDOR_SPECIFIC              26      /* vendor */
-#define PW_SESSION_TIMEOUT              27      /* integer */
-#define PW_IDLE_TIMEOUT                 28      /* integer */
-#define PW_TERMINATION_ACTION           29      /* integer */
-#define PW_CALLED_STATION_ID            30      /* string */
-#define PW_CALLING_STATION_ID           31      /* string */
-#define PW_NAS_IDENTIFIER               32      /* string */
-#define PW_PROXY_STATE                  33      /* string */
-#define PW_LOGIN_LAT_SERVICE            34      /* string */
-#define PW_LOGIN_LAT_NODE               35      /* string */
-#define PW_LOGIN_LAT_GROUP              36      /* string */
-#define PW_FRAMED_APPLETALK_LINK        37      /* integer */
-#define PW_FRAMED_APPLETALK_NETWORK     38      /* integer */
-#define PW_FRAMED_APPLETALK_ZONE        39      /* string */
+#define PW_CLASS                        25	/* string */
+#define PW_VENDOR_SPECIFIC              26	/* vendor */
+#define PW_SESSION_TIMEOUT              27	/* integer */
+#define PW_IDLE_TIMEOUT                 28	/* integer */
+#define PW_TERMINATION_ACTION           29	/* integer */
+#define PW_CALLED_STATION_ID            30	/* string */
+#define PW_CALLING_STATION_ID           31	/* string */
+#define PW_NAS_IDENTIFIER               32	/* string */
+#define PW_PROXY_STATE                  33	/* string */
+#define PW_LOGIN_LAT_SERVICE            34	/* string */
+#define PW_LOGIN_LAT_NODE               35	/* string */
+#define PW_LOGIN_LAT_GROUP              36	/* string */
+#define PW_FRAMED_APPLETALK_LINK        37	/* integer */
+#define PW_FRAMED_APPLETALK_NETWORK     38	/* integer */
+#define PW_FRAMED_APPLETALK_ZONE        39	/* string */
 
 #define PW_ACCT_STATUS_TYPE		40
 #define PW_ACCT_DELAY_TIME		41
@@ -115,11 +114,11 @@ typedef struct pw_auth_hdr {
 #define PW_ACCT_AUTHENTIC		45
 #define PW_ACCT_SESSION_TIME		46
 
-#define PW_CHAP_CHALLENGE               60      /* string */
-#define PW_NAS_PORT_TYPE                61      /* integer */
-#define PW_PORT_LIMIT                   62      /* integer */
-#define PW_LOGIN_LAT_PORT               63      /* string */
-#define PW_PROMPT                       64      /* integer */
+#define PW_CHAP_CHALLENGE               60	/* string */
+#define PW_NAS_PORT_TYPE                61	/* integer */
+#define PW_PORT_LIMIT                   62	/* integer */
+#define PW_LOGIN_LAT_PORT               63	/* string */
+#define PW_PROMPT                       64	/* integer */
 
 #define	PW_NAS_IPV6_ADDRESS	       	95	/* octets */
 
@@ -189,39 +188,39 @@ typedef struct pw_auth_hdr {
 /* Server data structures */
 
 typedef struct dict_attr {
-	char			name[32];
-	int			value;
-	int			type;
-	struct dict_attr	*next;
+	char name[32];
+	int value;
+	int type;
+	struct dict_attr *next;
 } DICT_ATTR;
 
 typedef struct dict_value {
-	char			attrname[32];
-	char			name[32];
-	int			value;
-	struct dict_value	*next;
+	char attrname[32];
+	char name[32];
+	int value;
+	struct dict_value *next;
 } DICT_VALUE;
 
 typedef struct value_pair {
-	char			name[32];
-	int			attribute;
-	int			type;
-	uint32_t		lvalue;
-	char			strvalue[AUTH_STRING_LEN];
-	struct value_pair	*next;
+	char name[32];
+	int attribute;
+	int type;
+	uint32_t lvalue;
+	char strvalue[AUTH_STRING_LEN];
+	struct value_pair *next;
 } VALUE_PAIR;
 
 typedef struct auth_req {
-	uint32_t		ipaddr;
-	uint16_t		udp_port;
-	uint8_t			id;
-	uint8_t			code;
-	uint8_t			vector[16];
-	uint8_t			secret[16];
-	VALUE_PAIR		*request;
-	int			child_pid;	/* Process ID of child */
-	uint32_t		timestamp;
-	struct auth_req		*next;		/* Next active request */
+	uint32_t ipaddr;
+	uint16_t udp_port;
+	uint8_t id;
+	uint8_t code;
+	uint8_t vector[16];
+	uint8_t secret[16];
+	VALUE_PAIR *request;
+	int child_pid;		/* Process ID of child */
+	uint32_t timestamp;
+	struct auth_req *next;	/* Next active request */
 } AUTH_REQ;
 
 #define SECONDS_PER_DAY		86400
@@ -229,4 +228,4 @@ typedef struct auth_req {
 #define CLEANUP_DELAY		5
 #define MAX_REQUESTS		100
 
-#endif /* RADIUS_H */
+#endif				/* RADIUS_H */

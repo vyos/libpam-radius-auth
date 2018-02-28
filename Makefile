@@ -15,7 +15,7 @@ VERSION=1.4.1
 #  If you're not using GCC, then you'll have to change the CFLAGS.
 #
 # structured this way instead of += so configured CFLAGS can override -Wall
-CFLAGS := -Wall -fPIC ${CFLAGS}
+CFLAGS := -Wall -Werror -fPIC ${CFLAGS}
 
 #
 # On Irix, use this with MIPSPRo C Compiler, and don't forget to export CC=cc
@@ -38,6 +38,9 @@ all: pam_radius_auth.so
 #  Build the object file from the C source.
 #
 export CFLAGS
+
+src/support.o: src/support.c src/pam_radius_auth.h
+	@$(MAKE) -C src $(notdir $@)
 
 src/pam_radius_auth.o: src/pam_radius_auth.c src/pam_radius_auth.h
 	@$(MAKE) -C src $(notdir $@)
@@ -63,7 +66,7 @@ src/md5.o: src/md5.c src/md5.h
 #
 #	gcc -shared pam_radius_auth.o md5.o -lpam -lc -o pam_radius_auth.so
 #
-pam_radius_auth.so: src/pam_radius_auth.o src/md5.o
+pam_radius_auth.so: src/pam_radius_auth.o src/support.o src/md5.o
 	$(CC) $(LDFLAGS) $^ -lpam -o pam_radius_auth.so
 
 ######################################################################
