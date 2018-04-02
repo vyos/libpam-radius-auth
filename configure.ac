@@ -23,7 +23,7 @@ dnl #############################################################
 AC_PREREQ([2.59])
 export CFLAGS LIBS LDFLAGS CPPFLAGS
 
-AC_INIT([pam_radius],1.5,[http://www.cumulusnetworks.com],,[http://www.cumulusnetworks.com])
+AC_INIT([libpam-radius-auth],1.4.1,[http://www.cumulusnetworks.com],,[http://www.cumulusnetworks.com])
 AC_CONFIG_SRCDIR([src/pam_radius_auth.c])
 AC_CONFIG_HEADER([src/config.h])
 m4_include([m4/ax_cc.m4])
