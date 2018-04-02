@@ -31,52 +31,49 @@
 #endif
 
 #if defined(HAVE_SECURITY_PAM_APPL_H)
-#  include <security/pam_appl.h>
+#include <security/pam_appl.h>
 #elif defined(HAVE_PAM_PAM_APPL_H)
-#  include <pam/pam_appl.h>
+#include <pam/pam_appl.h>
 #endif
 
 #if defined(HAVE_SECURITY_PAM_MODULES_H)
-#  include <security/pam_modules.h>
+#include <security/pam_modules.h>
 #elif defined(HAVE_PAM_PAM_APPL_H)
-#  include <pam/pam_modules.h>
+#include <pam/pam_modules.h>
 #else
-#  error security/pam_modules.h or pam/pam_modules.h required
+#error security/pam_modules.h or pam/pam_modules.h required
 #endif
-
 
 #include "radius.h"
 #include "md5.h"
 
 /* Defaults for the prompt option */
-#define MAXPROMPT 33               /* max prompt length, including '\0' */
-#define DEFAULT_PROMPT "Password"  /* default prompt, without the ': '  */
-
+#define MAXPROMPT 33		/* max prompt length, including '\0' */
+#define DEFAULT_PROMPT "Password"	/* default prompt, without the ': '  */
 
 /*************************************************************************
  * Platform specific defines
  *************************************************************************/
 
 #ifndef CONST
-#  if defined(__sun) || defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+#if defined(__sun) || defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 /*
  *  On older versions of Solaris, you may have to change this to:
  *  #define CONST
  */
-#    define CONST const
-#  else
-#    define CONST
-#  endif
+#define CONST const
+#else
+#define CONST
+#endif
 #endif
 
 #ifndef PAM_EXTERN
-#  ifdef __sun
-#    define PAM_EXTERN extern
-#  else
-#    define PAM_EXTERN
-#  endif
+#ifdef __sun
+#define PAM_EXTERN extern
+#else
+#define PAM_EXTERN
 #endif
-
+#endif
 
 /*************************************************************************
  * Useful macros and defines
@@ -93,30 +90,28 @@
 #define PAM_TRY_FIRST_PASS 8
 #define PAM_RUSER_ARG      16
 
-
 /* buffer size for IP address in string form */
 #define MAX_IP_LEN 16
 
 /* Module defines */
 #ifndef BUFFER_SIZE
 #define BUFFER_SIZE      1024
-#endif /* BUFFER_SIZE */
-#define MAXPWNAM 253    /* maximum user name length. Server dependent,
-                         * this is the default value
-                         */
-#define MAXPASS 128     /* max password length. Again, depends on server
-                         * compiled in. This is the default.
-                         */
-#ifndef CONF_FILE       /* the configuration file holding the server secret */
+#endif				/* BUFFER_SIZE */
+#define MAXPWNAM 253		/* maximum user name length. Server dependent,
+				 * this is the default value
+				 */
+#define MAXPASS 128		/* max password length. Again, depends on server
+				 * compiled in. This is the default.
+				 */
+#ifndef CONF_FILE		/* the configuration file holding the server secret */
 #define CONF_FILE       "/etc/raddb/server"
-#endif /* CONF_FILE */
+#endif				/* CONF_FILE */
 
 #ifndef FALSE
 #define FALSE 0
 #undef TRUE
 #define TRUE !FALSE
 #endif
-
 
 /*************************************************************************
  * Additional RADIUS definitions
@@ -154,4 +149,4 @@ typedef struct radius_conf_t {
 	char prompt[MAXPROMPT];
 } radius_conf_t;
 
-#endif /* PAM_RADIUS_H */
+#endif				/* PAM_RADIUS_H */
