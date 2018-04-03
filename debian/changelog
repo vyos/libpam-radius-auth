@@ -1,3 +1,13 @@
+libpam-radius-auth (1.5.0-cl3u1) RELEASED; urgency=low
+  * New Enabled - When the Vendor Specific Option (VSA) containing
+    shell:priv-lvl is present and and the level value is >= to the level
+    set in the config file (15 by default), the user is made a member
+    of the groups containing the radius_priv_user, to enable configuration.
+    Typically this includes the sudo and netedit accounts.
+    All radius logins are added to the netshow group by default.
+
+ -- Dave Olson <olson@cumulusnetworks.com>  Mon, 02 Apr 2018 23:54:02 -0700
+
 libpam-radius-auth (1.4.1-cl3u3) RELEASED; urgency=low
 
   * Closes CM-19908 - Logging changed to use pam_syslog, log message format
