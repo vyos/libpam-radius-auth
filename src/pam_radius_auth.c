@@ -903,14 +903,13 @@ static int setup_sock(pam_handle_t * pamh, radius_server_t * server,
  */
 static int initialize(pam_handle_t * pamh, radius_conf_t * conf)
 {
-	int ret = PAM_SUCCESS, retsetup, nservers = 0;
+	int parse, retsetup, nservers = 0;
+	const int rfail = PAM_AUTHINFO_UNAVAIL;
 	radius_server_t *server = NULL;
 
-	ret = parse_conffile(pamh, conf);
-	if (ret == -1)
-		return ret;
-	else if (ret == 1)
-		return PAM_SUCCESS;	/*  no changes to previous parse */
+	parse = parse_conffile(pamh, conf);
+	if (parse == -1)
+		return rfail;
 
 	/*  setup the sockets, bind to them, etc. */
 	for (server = conf->server; server; server = server->next) {
@@ -919,19 +918,20 @@ static int initialize(pam_handle_t * pamh, radius_conf_t * conf)
 			nservers++;
 	}
 
-	if (!nservers) {
-		_pam_log(pamh, LOG_ERR, "No valid server found in configuration"
-			 " file %s", conf->conf_file);
-		ret = PAM_AUTHINFO_UNAVAIL;
+	retsetup = nservers ? PAM_SUCCESS : rfail;
+
+	if (parse != 1) { /*  only on first call */
+		if (!nservers)
+			_pam_log(pamh, LOG_ERR, "No valid server found in"
+				 " configuration file %s", conf->conf_file);
+		else {
+			cleaned_up = 0;
+			pam_set_data(pamh, "rad_conf_cleanup",
+				     (void *)conf->server, cleanup_conf);
+		}
 	}
 
-	if (conf->server) {
-		cleaned_up = 0;
-		pam_set_data(pamh, "rad_conf_cleanup", (void *)conf->server,
-			     cleanup_conf);
-	}
-
-	return ret;
+	return retsetup;
 }
 
 /*
