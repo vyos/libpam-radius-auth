@@ -107,12 +107,12 @@ __write_mapfile(pam_handle_t * pamh, const char *user, uid_t uid,
 
 	}
 
-	/*  won't hurt if it already exists, no more overhead than stat() first */
+	/*  won't hurt if it already exists, same overhead as stat() first */
 	mkdir(mapdir, 0755);
 	snprintf(tmpstr, sizeof tmpstr, "%s/%u", mapdir, session);
 	/*
-	 * Only create if it doesn't exist.  It might exist if we are called from
-	 * su or sudo after a login, for example
+	 * Only create if it doesn't exist.  It might exist if we are called
+	 * from su or sudo after a login, for example
 	 */
 	f = fopen(tmpstr, "wx");
 	if (!f) {

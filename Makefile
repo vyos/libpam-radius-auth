@@ -24,14 +24,17 @@ CFLAGS := -Wall -Werror -fPIC ${CFLAGS}
 # Then copy pam_radius_auth.so to /usr/freeware/lib32/security (PAM dir)
 # CFLAGS =
 
-#LDFLAGS += -shared -Wl,--version-script=pamsymbols.ver
-LDFLAGS += -shared
+#LDSHFLAGS += -shared -Wl,--version-script=pamsymbols.ver
+LDSHFLAGS = -shared
+LDLIBS += -laudit
+BINLIBS += -lcap
+LIBLIBS += -lpam
 
 ######################################################################
 #
 #  The default rule to build everything.
 #
-all: pam_radius_auth.so
+all: pam_radius_auth.so radius_shell
 
 ######################################################################
 #
@@ -46,6 +49,9 @@ src/pam_radius_auth.o: src/pam_radius_auth.c src/pam_radius_auth.h
 	@$(MAKE) -C src $(notdir $@)
 
 src/md5.o: src/md5.c src/md5.h
+	@$(MAKE) -C src $(notdir $@)
+
+src/radius_shell.o: src/radius_shell.c
 	@$(MAKE) -C src $(notdir $@)
 
 #
@@ -67,7 +73,10 @@ src/md5.o: src/md5.c src/md5.h
 #	gcc -shared pam_radius_auth.o md5.o -lpam -lc -o pam_radius_auth.so
 #
 pam_radius_auth.so: src/pam_radius_auth.o src/support.o src/md5.o
-	$(CC) $(LDFLAGS) $^ -lpam -o pam_radius_auth.so
+	$(CC) $(LDFLAGS) $(LDSHFLAGS) $^ $(LDLIBS) $(LIBLIBS) -o $@
+
+radius_shell: src/radius_shell.o
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) $(BINLIBS) -o $@
 
 ######################################################################
 #
@@ -85,4 +94,4 @@ dist:
 #
 .PHONY: clean
 clean:
-	@rm -f *~ *.so *.o src/*.o src/*~
+	@rm -f *~ *.so *.o src/*.o src/*~ radius_shell

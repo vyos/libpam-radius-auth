@@ -1,0 +1,29 @@
+#! /bin/sh
+
+set -e
+
+# we depend on libnss-mapuser, so that the radius group will have been
+# created before this script runs.
+
+case "$1" in
+    configure)
+        radshell=/sbin/radius_shell
+        chmod 750 $radshell
+        chgrp radius_users $radshell
+        setcap  cap_setuid+ep $radshell
+        # The users will have been created by the libnss-mapuser package
+        # and possibly by an older version, so change the shells here.
+        # This also prevents a loop in package install ordering dependencies
+        for usr in radius_user radius_priv_user; do
+            uent="$(getent -s compat passwd $usr 2>/dev/null)" || true
+            [ -z "$uent" ] && continue
+            case "$uent" in
+                *${radshell}*) ;;
+                *) chsh -s $radshell $usr ;;
+            esac
+        done
+        ;;
+esac
+
+#DEBHELPER#
+

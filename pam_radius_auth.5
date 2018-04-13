@@ -66,6 +66,12 @@ to be considered a
 privileged login (ability to configure via nclu 'net' commands, and able to sudo.
 The default is 15.  The range is 0-15.  Only matters when the VSA attribute is
 returned.
+.TP
+.I mapped_priv_user accountname
+This sets the name of the privileged mapping account in /etc/passwd.
+It must match the privileged account name in
+.IR nss_mapuser (5)
+for correct operation.
 .SH "SEE ALSO"
 .BR pam_radius_auth (8),
 .BR nss_mapuser (5)

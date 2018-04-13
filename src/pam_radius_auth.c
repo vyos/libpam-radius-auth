@@ -203,10 +203,11 @@ static int get_ipaddr(char *host, struct sockaddr *addr, char *port)
 }
 
 /*
- * take server->hostname, and convert it to server->ip
+ * Lookup server->hostname, to get server->ip
  * Done once when server list parsed.  The last part, the
  * if port isn't set in config, it needs to be set to either
  * radius or raddacct
+ * returns 0 on success, otherwise non-zero
  */
 static int host2server(pam_handle_t * pamh, radius_server_t * server)
 {
@@ -216,7 +217,7 @@ static int host2server(pam_handle_t * pamh, radius_server_t * server)
 
 	/* hostname might be [ipv6::address] */
 	strncpy(hostbuffer, server->hostname, sizeof(hostbuffer) - 1);
-	hostbuffer[sizeof(hostbuffer) - 1] = 0;
+	hostbuffer[sizeof(hostbuffer) - 1] = 0; /* ensure null term */
 	hostname = hostbuffer;
 	portstart = hostbuffer;
 	if (hostname[0] == '[') {
@@ -653,7 +654,7 @@ static void cleanup_conf(pam_handle_t * pamh, void *arg, int unused)
 static int parse_conffile(pam_handle_t * pamh, radius_conf_t * cf)
 {
 	static struct stat last_st;
-	int line = 0, timeout;
+	int line = 0, timeout, ret = 0;
 	const char *cfname = cf->conf_file;
 	char *p;
 	radius_server_t *server = NULL, *tmp;
@@ -661,8 +662,10 @@ static int parse_conffile(pam_handle_t * pamh, radius_conf_t * cf)
 	char hostname[BUFFER_SIZE], secret[BUFFER_SIZE], buffer[BUFFER_SIZE];
 	char srcip[BUFFER_SIZE];
 
-	if (!cfname || !*cfname)
-		return -1;
+	if (!cfname || !*cfname) {
+		ret = -1;
+		goto done;
+	}
 
 	if (last_st.st_ino) {
 		struct stat st;
@@ -670,18 +673,22 @@ static int parse_conffile(pam_handle_t * pamh, radius_conf_t * cf)
 		rst = stat(cfname, &st);
 		if (!rst && st.st_ino == last_st.st_ino && st.st_mtime ==
 		    last_st.st_mtime && st.st_ctime == last_st.st_ctime) {
+			/* no changes to savconf, so just return */
 			return 1;
 		}
 	}
 
-	if (cf->server)		/* we already had sockets open and bound, cleanup */
+	if (cf->server)	{ /* we already had sockets open and bound, cleanup */
 		pam_set_data(pamh, "rad_conf_cleanup", NULL, NULL);
+		cf->server = NULL; /* in case reuse and no servers found */
+	}
 
 	/* the first time around, read the configuration file */
 	if ((fserver = fopen(cfname, "r")) == (FILE *) NULL) {
 		_pam_log(pamh, LOG_ERR, "Could not open configuration file %s:"
 			 " %m", cfname);
-		return -1;
+		ret = -1;
+		goto done;
 	}
 
 	while (!feof(fserver) &&
@@ -746,6 +753,20 @@ static int parse_conffile(pam_handle_t * pamh, radius_conf_t * cf)
 				}
 			}
 			continue;
+		} else if (!strcmp(hostname, "mapped_priv_user")) {
+			/* mapped account name of radius privileged user for
+			 * uid/auid fixup */
+			if (scancnt < 2)
+				_pam_log(pamh, LOG_ERR,
+					 "ERROR reading %s, line %d:"
+					 " only %d fields", cf->conf_file, line,
+					 scancnt);
+			else
+				snprintf(cf->privusrmap, sizeof cf->privusrmap, "%s",
+					 secret);
+			snprintf(savconf.privusrmap, sizeof savconf.privusrmap,
+				 "%s", secret);
+			continue;
 		} else if (!strcmp(hostname, "debug")) {
 			/* allow setting debug in config file as well */
 			cf->debug = cfg_debug = 1;
@@ -766,7 +787,8 @@ static int parse_conffile(pam_handle_t * pamh, radius_conf_t * cf)
 			_pam_log(pamh, LOG_ERR,
 				 "Unable to allocate server info for %s: %m",
 				 hostname);
-			return -1;
+			ret = -1;
+			goto done;
 		}
 		tmp->sockfd = -1;	/* mark as uninitialized */
 		if (server) {
@@ -804,17 +826,18 @@ static int parse_conffile(pam_handle_t * pamh, radius_conf_t * cf)
 	if (!cf->server) {	/* no server found, die a horrible death */
 		_pam_log(pamh, LOG_ERR, "No server found in"
 			 " configuration file %s", cf->conf_file);
-		return -1;
+		ret = -1;
 	}
 
 	/*
 	 * save the server in savconf for next call (if any) to _parse_args()
 	 * for the same config file (will be overridden if a different config
-	 * file
+	 * file; need to do that even if NULL, so we don't re-use old bad data
 	 */
+done:
 	savconf.server = cf->server;
 
-	return 0;
+	return ret;
 }
 
 static int setup_sock(pam_handle_t * pamh, radius_server_t * server,
@@ -1178,7 +1201,7 @@ static int talk_radius(radius_conf_t * conf, AUTH_HDR * request,
 						 * If the user says he wants the bug,
 						 * give in.
 						 */
-					} else {	/* authentication request */
+					} else { /* authentication request */
 						if (conf->accounting_bug) {
 							p = "";
 						}
@@ -1318,21 +1341,23 @@ static int rad_converse(pam_handle_t * pamh, int msg_style, char *message,
 /*
  *	We'll create the home directory if needed, and we'll write the flat file
  *	mapping entry.  It's done at this point, because this is the end of the
- *	authentication phase (and authorization, too, since authorization is part of
- *	authentication phase for RADIUS) for ssh, login, etc.
+ *	authentication phase (and authorization, too, since authorization is
+ *	part of *	authentication phase for RADIUS) for ssh, login, etc.
  */
 static void
-setup_userinfo(pam_handle_t * pamh, const char *user, int debug, int privileged)
+setup_userinfo(pam_handle_t * pamh, radius_conf_t *cfg, const char *user,
+	       int debug, int privileged)
 {
 	struct passwd *pw;
 
 	/*
-	 * set SUDO_PROMPT in env so that it prompts as the login user, not the mapped
-	 * user, unless (unlikely) the prompt has already been set.
+	 * set SUDO_PROMPT in env so that it prompts as the login user, not the
+	 * mapped * user, unless (unlikely) the prompt has already been set.
 	 * It won't hurt to do this if the user wasn't mapped.
 	 */
 	if (!pam_getenv(pamh, "SUDO_PROMPT")) {
-		char nprompt[strlen("SUDO_PROMPT=[sudo] password for ") + strlen(user) + 3];	/* + 3 for ": " and the \0 */
+		char nprompt[strlen("SUDO_PROMPT=[sudo] password for ") +
+			strlen(user) + 3];	/* + 3 for ": " and the \0 */
 		snprintf(nprompt, sizeof nprompt,
 			 "SUDO_PROMPT=[sudo] password for %s: ", user);
 		if (pam_putenv(pamh, nprompt) != PAM_SUCCESS)
@@ -1346,6 +1371,27 @@ setup_userinfo(pam_handle_t * pamh, const char *user, int debug, int privileged)
 			pam_syslog(pamh, LOG_DEBUG,
 				   "Failed to get homedir for user (%s)", user);
 		return;
+	}
+
+	/*
+	 * because the RADIUS protocol is single pass, we always have the
+	 * pw_uid of the unprivileged account at this point.  Set things up
+	 * so we use the uid of the privileged radius account.
+	 */
+	if (privileged) {
+		struct passwd *pwp;
+		if (!cfg->privusrmap[0] || !(pwp = getpwnam(cfg->privusrmap))) {
+			_pam_log(pamh, LOG_WARNING, "Failed to find uid for"
+				 " privileged account %s, uid may be wrong"
+				 " for user %s",
+				 cfg->privusrmap[0] ? cfg->privusrmap :
+				 "(unset in config)", user);
+		}
+		else if (pwp && pw->pw_uid != pwp->pw_uid) {
+	syslog(LOG_DEBUG, "OLSON wrmap user=%s, but uid=%u, change to %u",
+	       user, pw->pw_uid, pwp->pw_uid);
+		pw->pw_uid = pwp->pw_uid;
+		}
 	}
 
 	/*
@@ -1601,7 +1647,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags, int argc,
 					 "=%d, min for priv=%d", privlvl,
 					 config.min_priv_lvl);
 		}
-		setup_userinfo(pamh, user, debug,
+		setup_userinfo(pamh, &config, user, debug,
 			       privlvl >= config.min_priv_lvl);
 		retval = PAM_SUCCESS;
 	} else {

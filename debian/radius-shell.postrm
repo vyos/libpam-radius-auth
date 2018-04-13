@@ -1,0 +1,23 @@
+#! /bin/sh
+
+set -e
+
+# we depend on libnss-mapuser, so that the radius group will have been
+# created before this script runs.
+
+case "$1" in
+    remove|purge)
+        # fixup the shell for the users we may have modified on installation,
+        # if still present, and using our shell
+        for usr in radius_user radius_priv_user; do
+            uent="$(getent -s compat passwd $usr 2>/dev/null)" || true
+            [ -z "$uent" ] && continue
+            case "$uent" in
+                *${radshell}*) chsh -s /bin/bash $usr ;;
+            esac
+        done
+        ;;
+esac
+
+#DEBHELPER#
+

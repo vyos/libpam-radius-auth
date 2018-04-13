@@ -154,6 +154,7 @@ typedef struct radius_conf_t {
 	int min_priv_lvl;
 	char prompt[MAXPROMPT];
 	char vrfname[64];
+	char privusrmap[64];
 } radius_conf_t;
 
 void __write_mapfile(pam_handle_t * p, const char *usr, uid_t uid, int priv,

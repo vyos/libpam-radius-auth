@@ -1,0 +1,47 @@
+.TH radius_shell 8
+.\" Copyright 2018 Cumulus Networks, Inc.  All rights reserved.
+.SH NAME
+radius_shell - front end shell for radius users
+.SH SYNOPSIS
+.B /sbin/radius_shell
+is  RADIUS client front end shell that will ensure that the uid is set
+to the auid (the accounting uid).
+.SH DESCRIPTION
+This shell front-end needed because at login, it's
+not possible to determine if a user is privileged up front, because
+the RADIUS protocol combines authentication and authorization in a single
+transaction.
+.P
+That means that all RADIUS users login as the same base mapped user and therefore
+the same UID, although the auid will be set differently.
+.P
+The
+.B radius_shell
+is installed with setcap permissions that allow it to set the uid.
+It is set as the login shell for the radius users via the
+.I libnss-mapuser
+package.
+.P
+For security, the uid of the process is only changed if the auid is set,
+and is 1000 or larger (this is the normal minimum uid for non-privileged
+users via
+.I adduser
+and
+.IR useradd .
+The value is hardcoded in the source, it is not read from the
+.I adduser.conf
+configuration file.
+.P
+Whether the uid is changed or not, a login shell is exec'ed.
+At this time, the login shell is only
+.BR /bin/bash ,
+although the other shells listed in
+.I /etc/shells
+may be allowed in the future.
+.SH "SEE ALSO"
+.BR setcap (8),
+.BR pam_radius_auth (8),
+.BR nss_mapuser (5)
+.SH FILES
+.SH AUTHOR
+Dave Olson <olson@cumulusnetworks.com>

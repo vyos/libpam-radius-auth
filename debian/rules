@@ -21,8 +21,10 @@ export CFLAGS
 # all the installing is here, not in Makefile.
 # The configuration file with the share secrets needs to be 600
 override_dh_install:
-	dh_install -v --sourcedir=.
+	dh_install -v --sourcedir=. --package=libpam-radius-auth
+	dh_install -v --sourcedir=.  --package=radius-shell
 	chmod 600 debian/*/${PAM_CONF_FILE}
+	chmod 750 debian/*/sbin/radius_shell
 
 override_dh_fixperms:
 	dh_fixperms --exclude ${PAM_CONF_FILE}
