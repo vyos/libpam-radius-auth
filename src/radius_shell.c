@@ -92,6 +92,7 @@ execit:
 	/*
 	 * Eventually handle this program being linked or symlinked
 	 * and that the shell is one of the shells in /etc/shells
+	 * Expect it to be installed as /sbin/radius/bash, etc.
 	 */
 	shell = strrchr(args[0], '/');
 	if (!shell)
@@ -103,15 +104,22 @@ execit:
 	else
 		check = shell;
 
+	/*  need to validate shell from basename is valid here */
+
+
 	/* should really check this against /etc/shell */
 	snprintf(execshell, sizeof execshell, "/bin/%s", check);
 #else
 	check = "bash";
-	shell = "-bash";
+	if (*args[0] == '-')
+		shell = "-bash";
+	else
+		shell = "bash";
 	snprintf(execshell, sizeof execshell, "/bin/%s", check);
 #endif
 
-	execl(execshell, shell, NULL);
+	args[0] = shell;
+	execv(execshell, args);
 	fprintf(stderr, "Exec of shell %s failed: %s\n", execshell,
 		strerror(errno));
 	exit(1);
