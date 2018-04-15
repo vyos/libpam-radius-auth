@@ -4,9 +4,13 @@ libpam-radius-auth (1.5.0-cl3u1) RELEASED; urgency=low
     set in the config file (15 by default), the user is made a member
     of the groups containing the radius_priv_user, to enable configuration.
     Typically this includes the sudo and netedit accounts.
-    All radius logins are added to the netshow group by default.
+    The unprivileged radius_user login is added to the netshow group at
+    install, therefore non-privileged radius users can run 'net show' cmds
+    The privileged radius_priv_user login is added to the netedit and sudo
+    groups at install, therefore privileged radius users can sudo, and
+    can run 'net add', 'net commit', etc.
 
- -- Dave Olson <olson@cumulusnetworks.com>  Fri, 06 Apr 2018 15:50:00 -0700
+ -- Dave Olson <olson@cumulusnetworks.com>  Sun, 15 Apr 2018 14:53:33 -0700
 
 libpam-radius-auth (1.4.1-cl3u3) RELEASED; urgency=low
 
