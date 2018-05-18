@@ -1,3 +1,2 @@
 lib
 index.html usr/share/doc/libpam-radius-auth/html
-debian/radius usr/share/pam-configs
