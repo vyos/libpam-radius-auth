@@ -24,9 +24,5 @@ override_dh_install:
 	dh_install -v --sourcedir=.  --package=radius-shell
 	chmod 750 debian/*/sbin/radius_shell
 
-override_dh_auto_install:
-	mkdir -p lib/$(DEB_HOST_MULTIARCH)/security
-	cp pam_radius_auth.so lib/$(DEB_HOST_MULTIARCH)/security
-
 override_dh_installchangelogs:
 	dh_installchangelogs Changelog
