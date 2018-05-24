@@ -7,6 +7,7 @@ ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
 else
 	CFLAGS += -O2
 endif
+PAM_CONF_FILE=/etc/pam_radius_auth.conf
 CFLAGS+=-g3 -Wno-strict-aliasing -DCONF_FILE=\"${PAM_CONF_FILE}\"
 
 ifeq ($(DEB_HOST_GNU_CPU),(hppa|m68k|mips|powerpc|s390|sparc|sparc64|sheb))
@@ -22,7 +23,11 @@ export CFLAGS
 override_dh_install:
 	dh_install -v --sourcedir=. --package=libpam-radius-auth
 	dh_install -v --sourcedir=.  --package=radius-shell
+	chmod 600 debian/*/${PAM_CONF_FILE}
 	chmod 750 debian/*/sbin/radius_shell
+
+override_dh_fixperms:
+	dh_fixperms --exclude ${PAM_CONF_FILE}
 
 override_dh_installchangelogs:
 	dh_installchangelogs Changelog
