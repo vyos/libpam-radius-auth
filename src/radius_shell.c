@@ -92,7 +92,7 @@ execit:
 	/*
 	 * Eventually handle this program being linked or symlinked
 	 * and that the shell is one of the shells in /etc/shells
-	 * Expect it to be installed as /sbin/radius/vbash, etc.
+	 * Expect it to be installed as /sbin/radius/bash, etc.
 	 */
 	shell = strrchr(args[0], '/');
 	if (!shell)
@@ -110,11 +110,11 @@ execit:
 	/* should really check this against /etc/shell */
 	snprintf(execshell, sizeof execshell, "/bin/%s", check);
 #else
-	check = "vbash";
+	check = "bash";
 	if (*args[0] == '-')
-		shell = "-vbash";
+		shell = "-bash";
 	else
-		shell = "vbash";
+		shell = "bash";
 	snprintf(execshell, sizeof execshell, "/bin/%s", check);
 #endif
 
