@@ -44,6 +44,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <sys/fsuid.h>
 #include <sys/capability.h>
 
@@ -53,12 +54,14 @@ int main(int cnt, char **args)
 	cap_value_t capability[] = { CAP_SETUID};
 	cap_t capabilities;
 	char *shell = NULL, *check = NULL, execshell[64];
+	bool priv = true;
 
 	uid = getuid();
 	auid = audit_getloginuid();
 
 	if (uid < 1000 || auid < 1000 || auid == (uid_t)-1 || uid == auid) {
 		/*  We try to be careful in what we will change  */
+		priv = false;
 		goto execit;
 	}
 
@@ -110,12 +113,22 @@ execit:
 	/* should really check this against /etc/shell */
 	snprintf(execshell, sizeof execshell, "/bin/%s", check);
 #else
-	check = "bash";
-	if (*args[0] == '-')
-		shell = "-bash";
-	else
-		shell = "bash";
-	snprintf(execshell, sizeof execshell, "/bin/%s", check);
+	if (priv) {
+		check = "vbash";
+		if (*args[0] == '-')
+			shell = "-vbash";
+		else
+			shell = "vbash";
+		snprintf(execshell, sizeof execshell, "/bin/%s", check);
+	}
+	else {
+		check = "restricted-shell";
+		if (*args[0] == '-')
+			shell = "-restricted-shell";
+		else
+			shell = "restricted-shell";
+		snprintf(execshell, sizeof execshell, "/opt/vyatta/bin/%s", check);
+	}
 #endif
 
 	args[0] = shell;
