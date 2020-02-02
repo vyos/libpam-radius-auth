@@ -8,7 +8,7 @@ else
 	CFLAGS += -O2
 endif
 PAM_CONF_FILE=/etc/pam_radius_auth.conf
-CFLAGS+=-g3 -Wno-strict-aliasing -DCONF_FILE=\"${PAM_CONF_FILE}\"
+CFLAGS+=-Wno-format-truncation -Wno-strict-aliasing -DCONF_FILE=\"${PAM_CONF_FILE}\"
 
 ifeq ($(DEB_HOST_GNU_CPU),(hppa|m68k|mips|powerpc|s390|sparc|sparc64|sheb))
 	CFLAGS += -DHIGHFIRST
