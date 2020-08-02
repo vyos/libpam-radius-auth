@@ -11,6 +11,8 @@ case "$1" in
         chmod 750 $radshell
         chgrp users $radshell
         setcap  cap_setuid+ep $radshell
+        # Temporarily comment password entry requirement from PAM configuration
+        sed -i 's|auth       required   pam_shells.so|#auth       required   pam_shells.so|' /etc/pam.d/chsh
         # The users will have been created by the libnss-mapuser package
         # and possibly by an older version, so change the shells here.
         # This also prevents a loop in package install ordering dependencies
@@ -22,6 +24,8 @@ case "$1" in
                 *) chsh -s $radshell $usr ;;
             esac
         done
+        # Restore PAM configuration
+        sed -i 's|#auth       required   pam_shells.so|auth       required   pam_shells.so|' /etc/pam.d/chsh
         ;;
 esac
 
