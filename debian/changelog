@@ -1,3 +1,10 @@
+
+libpam-radius-auth (1.5.0-cl3u2) RELEASED; urgency=low
+
+  * Disable pam authentication requirement for chsh during postinst
+
+ -- Boris Lukashev <rageltman@sempervictus.com>  Sun, 2 Aug 2020 14:50:30 -0400
+
 libpam-radius-auth (1.5.0-cl3u1) RELEASED; urgency=low
   * New Enabled - When the Vendor Specific Option (VSA) containing
     shell:priv-lvl is present and and the level value is >= to the level
