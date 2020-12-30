@@ -16,6 +16,9 @@ case "$1" in
                 *${radshell}*) chsh -s /bin/bash $usr ;;
             esac
         done
+        if [ -x /usr/sbin/remove-shell ] && [ -f /etc/shells ]; then
+            /usr/sbin/remove-shell /sbin/radius_shell
+        fi
         ;;
 esac
 
