@@ -1,3 +1,36 @@
+libpam-radius-auth (1.5.0-cl3u7) RELEASED; urgency=low
+  * Closes: CM-24829 - Fixed order setting vrf and binding to source address
+
+ -- dev-support <dev-support@cumulusnetworks.com>  Fri, 01 Mar 2019 14:21:25 -0800
+
+libpam-radius-auth (1.5.0-cl3u6) RELEASED; urgency=low
+  * Do not show passwd when debugging enabled
+
+ -- dev-support <dev-support@cumulusnetworks.com>  Fri, 01 Mar 2019 14:21:25 -0800
+
+libpam-radius-auth (1.5.0-cl3u5) RELEASED; urgency=low
+  * Closes: CM-23004 - local account password was allowed even when
+    RADIUS server could be reached and was authoritative for the accountname
+
+ -- dev-support <dev-support@cumulusnetworks.com>  Thu, 15 Nov 2018 13:51:34 -0800
+
+libpam-radius-auth (1.5.0-cl3u4) RELEASED; urgency=low
+  * fixed radius_shell to ensure euid set also, when run as a local user
+    shell (so user can still login when the radius server is done).
+
+ -- dev-support <dev-support@cumulusnetworks.com>  Tue, 28 Aug 2018 11:52:21 -0700
+
+libpam-radius-auth (1.5.0-cl3u3) RELEASED; urgency=low
+  * minor bug fix
+
+ -- dev-support <dev-support@cumulusnetworks.com>  Mon, 25 Jun 2018 22:07:29 -0700
+
+libpam-radius-auth (1.5.0-cl3u2) RELEASED; urgency=low
+  * Closes: CM-20649 - Fixed problem that didn't create the home directory
+  for privileged login users.
+
+ -- dev-support <dev-support@cumulusnetworks.com>  Wed, 18 Apr 2018 18:24:48 -0700
+
 libpam-radius-auth (1.5.0-cl3u1) RELEASED; urgency=low
   * New Enabled - When the Vendor Specific Option (VSA) containing
     shell:priv-lvl is present and and the level value is >= to the level
@@ -10,20 +43,20 @@ libpam-radius-auth (1.5.0-cl3u1) RELEASED; urgency=low
     groups at install, therefore privileged radius users can sudo, and
     can run 'net add', 'net commit', etc.
 
- -- Dave Olson <olson@cumulusnetworks.com>  Sun, 15 Apr 2018 14:53:33 -0700
+ -- dev-support <dev-support@cumulusnetworks.com>  Sun, 15 Apr 2018 14:53:33 -0700
 
 libpam-radius-auth (1.4.1-cl3u3) RELEASED; urgency=low
 
   * Closes CM-19908 - Logging changed to use pam_syslog, log message format
     now has program invoking, not just pam_radius_auth
 
- -- Dave Olson <olson@cumulusnetworks.com>  Tue, 27 Feb 2018 14:47:22 -0800
+ -- dev-support <dev-support@cumulusnetworks.com>  Tue, 27 Feb 2018 14:47:22 -0800
 
 libpam-radius-auth (1.4.1-cl3u2) RELEASED; urgency=low
 
   * Improved documentation in man pages
 
- -- Dave Olson <olson@cumulusnetworks.com>  Tue, 23 Jan 2018 16:03:38 -0800
+ -- dev-support <dev-support@cumulusnetworks.com>  Tue, 23 Jan 2018 16:03:38 -0800
 
 libpam-radius-auth (1.4.1-cl3u1) RELEASED; urgency=low
 
@@ -31,7 +64,7 @@ libpam-radius-auth (1.4.1-cl3u1) RELEASED; urgency=low
     to get UID, GID, and base of home directory, so radius users
     do not need to have an account created locally (or via LDAP)
 
- -- Dave Olson <olson@cumulusnetworks.com>  Fri, 16 Jun 2017 15:44:12 -0700
+ -- dev-support <dev-support@cumulusnetworks.com>  Fri, 16 Jun 2017 15:44:12 -0700
 
 libpam-radius-auth (1.4.0) unstable; urgency=low
 

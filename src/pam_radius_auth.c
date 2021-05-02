@@ -894,14 +894,6 @@ static int setup_sock(pam_handle_t * pamh, radius_server_t * server,
 	sockaddrsz = server->family == AF_INET ? sizeof(struct sockaddr_in) :
 	    sizeof(struct sockaddr_in6);
 
-	if (bind(server->sockfd, addr, sockaddrsz) < 0) {
-		_pam_log(pamh, LOG_ERR, "Bind for server %s failed: %m", hname);
-		/*  mark sockfd as not usable, by closing and set to -1 */
-		close(server->sockfd);
-		server->sockfd = -1;
-		return 1;
-	}
-
 	if (conf->vrfname[0]) {
 		/*  do not fail if the bind fails, connection may succeed */
 		if (setsockopt(server->sockfd, SOL_SOCKET, SO_BINDTODEVICE,
@@ -914,6 +906,14 @@ static int setup_sock(pam_handle_t * pamh, radius_server_t * server,
 		}
 		DPRINT(pamh, LOG_DEBUG, "Configured server %s vrf as: %s",
 		       server->hostname, conf->vrfname);
+	}
+
+	if (bind(server->sockfd, addr, sockaddrsz) < 0) {
+		_pam_log(pamh, LOG_ERR, "Bind for server %s failed: %m", hname);
+		/*  mark sockfd as not usable, by closing and set to -1 */
+		close(server->sockfd);
+		server->sockfd = -1;
+		return 1;
 	}
 	return 0;
 }
@@ -1352,7 +1352,9 @@ static void
 setup_userinfo(pam_handle_t * pamh, radius_conf_t *cfg, const char *user,
 	       int debug, int privileged)
 {
-	struct passwd *pw;
+	struct passwd *pw = NULL, *pwp = NULL;
+	uid_t uid = (uid_t)~0;
+	char *homedir = NULL;
 
 	/*
 	 * set SUDO_PROMPT in env so that it prompts as the login user, not the
@@ -1369,21 +1371,15 @@ setup_userinfo(pam_handle_t * pamh, radius_conf_t *cfg, const char *user,
 				 "failed to set PAM sudo prompt " "(%s)",
 				 nprompt);
 	}
-	pw = getpwnam(user);	/* this should never fail, at this point... */
-	if (!pw) {
-		if (debug)
-			pam_syslog(pamh, LOG_DEBUG,
-				   "Failed to get homedir for user (%s)", user);
-		return;
-	}
 
 	/*
 	 * because the RADIUS protocol is single pass, we always have the
 	 * pw_uid of the unprivileged account at this point.  Set things up
-	 * so we use the uid of the privileged radius account.
+	 * so we use the uid of the privileged radius account.  We do this
+	 * for the uid.  The homedir from this will be the unmapped privileged
+	 * radius user itself, not the login.
 	 */
 	if (privileged) {
-		struct passwd *pwp;
 		if (!cfg->privusrmap[0] || !(pwp = getpwnam(cfg->privusrmap))) {
 			_pam_log(pamh, LOG_WARNING, "Failed to find uid for"
 				 " privileged account %s, uid may be wrong"
@@ -1391,11 +1387,18 @@ setup_userinfo(pam_handle_t * pamh, radius_conf_t *cfg, const char *user,
 				 cfg->privusrmap[0] ? cfg->privusrmap :
 				 "(unset in config)", user);
 		}
-		else if (pwp && pw->pw_uid != pwp->pw_uid) {
-	syslog(LOG_DEBUG, "OLSON wrmap user=%s, but uid=%u, change to %u",
-	       user, pw->pw_uid, pwp->pw_uid);
-		pw->pw_uid = pwp->pw_uid;
-		}
+		if (pwp)
+			uid = pwp->pw_uid;
+	}
+
+	pw = getpwnam(user);
+	if (uid == (uid_t)~0 && pw)
+		uid = pw->pw_uid;
+
+	if (uid == (uid_t)~0) {
+		pam_syslog(pamh, LOG_WARNING,
+			   "Failed to get user UID for user (%s)", user);
+		return; /*  can't do anything */
 	}
 
 	/*
@@ -1403,8 +1406,25 @@ setup_userinfo(pam_handle_t * pamh, radius_conf_t *cfg, const char *user,
 	 * the session, although they can result in name or uid lookups not
 	 * working correctly.
 	 */
-	__write_mapfile(pamh, user, pw->pw_uid, privileged, debug);
-	__chk_homedir(pamh, user, pw->pw_dir, debug);
+	__write_mapfile(pamh, user, uid, privileged, debug);
+
+	if(privileged) { /* now we can get the correct homedir for priv user */
+		if (!(pwp = getpwnam(user))) {
+			_pam_log(pamh, LOG_WARNING, "Failed to find home dir"
+				 " for privileged user %s", user);
+		}
+		else
+			homedir = pwp->pw_dir;
+	}
+
+	if (!homedir && pw) /*  not privileged, or priv and getpwnam failed */
+		homedir = pw->pw_dir;
+
+	if (!homedir)
+		pam_syslog(pamh, LOG_WARNING,
+			   "Failed to get home directory for user (%s)", user);
+	else
+		__chk_homedir(pamh, user, homedir, debug);
 }
 
 /*  this is used so that sm_auth returns an appropriate value */
@@ -1506,7 +1526,8 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags, int argc,
 
 	if (password) {
 		password = strdup(password);
-		DPRINT(pamh, LOG_DEBUG, "Got password %s", password);
+		/*  do not show actual password; it's a security issue */
+		DPRINT(pamh, LOG_DEBUG, "Got password from user");
 	}
 
 	/* no previous password: maybe get one from the user */

@@ -4,7 +4,7 @@
 radius_shell - front end shell for radius users
 .SH SYNOPSIS
 .B /sbin/radius_shell
-is  RADIUS client front end shell that will ensure that the uid is set
+is  RADIUS client front end shell that will ensure that the euid, and the uid is set
 to the auid (the accounting uid).
 .SH DESCRIPTION
 This shell front-end needed because at login, it's
@@ -38,9 +38,58 @@ At this time, the login shell is only
 although the other shells listed in
 .I /etc/shells
 may be allowed in the future.
+.SH NOTE
+If a site wants to allow local fallback authentication of a user when 
+none of the RADIUS servers respond, a privileged user account with the
+same name as a RADIUS privileged user should be added as a local account,
+and the local account must have the same uid as the mapping privileged
+user, and the shell must be this shell.
+.P
+For example, if the
+.B radius_priv_user
+account in
+.I /etc/passwd
+is:
+.in +3
+.B "radius_priv_user:x:1002:1001::/home/radius_priv_user:/sbin/radius_shell"
+.P
+then the command to add a local privileged user account named
+.B olsonadmin
+would be
+.in +3
+.B "sudo useradd -u 1002 -g 1001 -o -s /sbin/radius_shell olsonadmin"
+.P
+Additionally, if you want the user to be able to run
+.I sudo
+and
+.IR nclu ( net )
+commands, you will also need to run the commands
+.in +3
+.B "sudo adduser olsonadmin netedit"
+.br
+.B "sudo adduser olsonadmin sudo"
+.br
+.B "sudo systemctl restart netd"
+.P
+Finally, edit the password file to move the local user prior to the 
+.B radius_priv_user
+line in the passwd file, using the command
+.in +3
+.B "sudo vipw"
+.in -3
+Set the local password for the user
+.in +3
+.B "sudo passwd olsonadmin"
+.in -3
+.P
+These extra steps are needed to the limitations of mapping RADIUS users, and the
+limitations of the RADIUS protocol.
 .SH "SEE ALSO"
 .BR setcap (8),
 .BR pam_radius_auth (8),
+.BR adduser (8),
+.BR useradd (8),
+.BR vipw "(8), and"
 .BR nss_mapuser (5)
 .SH FILES
 .SH AUTHOR

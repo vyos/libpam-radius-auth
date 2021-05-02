@@ -16,9 +16,9 @@ Description: PAM RADIUS client authentication module
 
 Package: radius-shell
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libaudit1, libcap2-bin, libcap2, libnss-mapuser, vyatta-cfg-system
+Depends: ${shlibs:Depends}, ${misc:Depends}, libaudit1, libcap2-bin, libcap2, libnss-mapuser
 Description: Shell front-end used for radius users.
  This provides a uid fixup program.  Due to the limitations of the
  RADIUS protocol, we can't tell whether a user is privileged until
- after authentication.  This packages provides a shell front-end that
+ after authentication.  This package provides a shell front-end that
  sets the uid to the auid, if set and > 1000, and not already matching.

@@ -44,24 +44,23 @@
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <sys/fsuid.h>
 #include <sys/capability.h>
 
 int main(int cnt, char **args)
 {
-	uid_t uid, auid;
+	uid_t uid, auid, euid;
 	cap_value_t capability[] = { CAP_SETUID};
 	cap_t capabilities;
-	char *shell = NULL, *check = NULL, execshell[64];
-	bool priv = true;
+	char *shell = NULL, *check = NULL, execshell[64], shellenv[64+6];
 
 	uid = getuid();
+	euid = geteuid();
 	auid = audit_getloginuid();
 
-	if (uid < 1000 || auid < 1000 || auid == (uid_t)-1 || uid == auid) {
+	if (uid < 1000 || auid < 1000 || auid == (uid_t)-1 ||
+	    (uid == auid && uid == euid)) {
 		/*  We try to be careful in what we will change  */
-		priv = false;
 		goto execit;
 	}
 
@@ -71,9 +70,9 @@ int main(int cnt, char **args)
 	if (setresuid(auid, auid, auid))
 		fprintf(stderr, "Failed to set uid to %u: %s\n",
 			auid, strerror(errno));
-	if (getuid() != auid)
-		fprintf(stderr, "Failed to set uid to %u it's still %u\n",
-			auid, getuid());
+	if (getuid() != auid || geteuid() != auid)
+		fprintf(stderr, "Failed to set uid to %u but uid=%u, euid=%u\n",
+			auid, getuid(), geteuid());
 
 execit:
 	/*  be paranoid, and clear our expected CAP_SETUID capability,
@@ -113,25 +112,17 @@ execit:
 	/* should really check this against /etc/shell */
 	snprintf(execshell, sizeof execshell, "/bin/%s", check);
 #else
-	if (priv) {
-		check = "vbash";
-		if (*args[0] == '-')
-			shell = "-vbash";
-		else
-			shell = "vbash";
-		snprintf(execshell, sizeof execshell, "/bin/%s", check);
-	}
-	else {
-		check = "restricted-shell";
-		if (*args[0] == '-')
-			shell = "-restricted-shell";
-		else
-			shell = "restricted-shell";
-		snprintf(execshell, sizeof execshell, "/opt/vyatta/bin/%s", check);
-	}
+	check = "bash";
+	if (*args[0] == '-')
+		shell = "-bash";
+	else
+		shell = "bash";
+	snprintf(execshell, sizeof execshell, "/bin/%s", check);
 #endif
 
 	args[0] = shell;
+	snprintf(shellenv, sizeof shellenv, "SHELL=%s", execshell);
+	putenv(shellenv);
 	execv(execshell, args);
 	fprintf(stderr, "Exec of shell %s failed: %s\n", execshell,
 		strerror(errno));
