@@ -60,11 +60,3 @@ warnings.txt
 
 # Analyzer output
 /*.plist
-
-aclocal.m4
-configure
-config.sub
-debian/.debhelper/
-debian/autoreconf.after
-debian/autoreconf.before
-radius_shell
