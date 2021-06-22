@@ -3,7 +3,7 @@ Maintainer: dev-support <dev-support@cumulusnetworks.com>
 Section: libs
 Priority: extra
 Standards-Version: 3.9.6
-Build-Depends: libpam0g-dev | libpam-dev, debhelper (>= 9~), libaudit-dev, libcap-dev
+Build-Depends: libpam0g-dev | libpam-dev, debhelper (>= 12), libaudit-dev, libcap-dev
 
 Package: libpam-radius-auth
 Architecture: any

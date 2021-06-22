@@ -59,6 +59,9 @@ src/radius_shell.o: src/radius_shell.c
 #pam_radius_auth.so: pam_radius_auth.o md5.o
 #	ld -shared pam_radius_auth.o md5.o -L/usr/freeware/lib32 -lpam -lc -o pam_radius_auth.so
 
+# set to x86_64-linux-gnu, arm-linux-gnueabi, etc. by packaging tools
+# If not set, just install directly to /lib
+LIBDIR=/lib/${DEB_TARGET_GNU_TYPE}
 
 ######################################################################
 #
@@ -72,7 +75,8 @@ src/radius_shell.o: src/radius_shell.c
 #
 #	gcc -shared pam_radius_auth.o md5.o -lpam -lc -o pam_radius_auth.so
 #
-pam_radius_auth.so: src/pam_radius_auth.o src/support.o src/md5.o
+PAM_MODULE=pam_radius_auth.so
+$(PAM_MODULE): src/pam_radius_auth.o src/support.o src/md5.o
 	$(CC) $(LDFLAGS) $(LDSHFLAGS) $^ $(LDLIBS) $(LIBLIBS) -o $@
 
 radius_shell: src/radius_shell.o
@@ -95,3 +99,9 @@ dist:
 .PHONY: clean
 clean:
 	@rm -f *~ *.so *.o src/*.o src/*~ radius_shell
+
+install: all
+	install -m 0755 -d $(DESTDIR)$(LIBDIR)/security $(DESTDIR)/etc
+	install -m 0644 $(PAM_MODULE) $(DESTDIR)$(LIBDIR)/security
+	install -m 0600 pam_radius_auth.conf $(DESTDIR)/etc
+

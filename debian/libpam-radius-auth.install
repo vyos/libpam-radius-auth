@@ -1,3 +1,2 @@
-pam_radius_auth.so lib/security
-pam_radius_auth.conf etc
-index.html usr/share/doc/libpam-radius-auth/html
+lib
+etc
