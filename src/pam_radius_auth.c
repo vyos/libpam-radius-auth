@@ -994,7 +994,7 @@ static void build_radius_packet(AUTH_HDR * request, CONST char *user,
 
 	/* Perhaps add NAS IP Address (and v6 version) */
 	/* Add possibility use source-ip-address as NAS-IP-Address */
-	if (conf->server->src_ip && strlen(conf->server->src_ip) > 0)
+	if (strlen(conf->server->src_ip) > 0)
 		add_nas_ip_address(request, conf->server->src_ip);
 	else
 		add_nas_ip_address(request, hostname);
