@@ -112,11 +112,11 @@ execit:
 	/* should really check this against /etc/shell */
 	snprintf(execshell, sizeof execshell, "/bin/%s", check);
 #else
-	check = "bash";
+	check = "vbash";
 	if (*args[0] == '-')
-		shell = "-bash";
+		shell = "-vbash";
 	else
-		shell = "bash";
+		shell = "vbash";
 	snprintf(execshell, sizeof execshell, "/bin/%s", check);
 #endif
 
