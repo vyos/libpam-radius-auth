@@ -1051,6 +1051,11 @@ static int talk_radius(radius_conf_t * conf, AUTH_HDR * request,
 	   sequence, on the off chance that one may have ended up fixing itself.
 	 */
 
+	if (!server) {
+		/* clear the response */
+		memset(response, 0, RADIUS_AUTH_BUFFER_SIZE);
+	}
+
 	/* loop over all available servers */
 	while (server != NULL) {
 		sockfd = server->sockfd;
@@ -1063,7 +1068,7 @@ static int talk_radius(radius_conf_t * conf, AUTH_HDR * request,
 		}
 
 		/* clear the response */
-		memset(response, 0, sizeof(AUTH_HDR));
+		memset(response, 0, RADIUS_AUTH_BUFFER_SIZE);
 
 		if (!password) {	/* make an RFC 2139 p6 request authenticator */
 			get_accounting_vector(request, server);
@@ -1455,8 +1460,8 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t * pamh, int flags, int argc,
 	int retval = PAM_AUTH_ERR;
 	int num_challenge = 0;
 
-	char recv_buffer[4096];
-	char send_buffer[4096];
+	char recv_buffer[RADIUS_AUTH_BUFFER_SIZE];
+	char send_buffer[RADIUS_AUTH_BUFFER_SIZE];
 	AUTH_HDR *request = (AUTH_HDR *) send_buffer;
 	AUTH_HDR *response = (AUTH_HDR *) recv_buffer;
 	radius_conf_t config;
