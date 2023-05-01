@@ -47,6 +47,27 @@
 #include <sys/fsuid.h>
 #include <sys/capability.h>
 
+static int shell_exists(const char* path)
+{
+	char* shell_path;
+	int ret = 0;
+
+	if (! path) {
+		return 0;
+	}
+
+	while ((shell_path = getusershell())) {
+		if (strcmp(shell_path, path) == 0) {
+			ret = 1;
+			break;
+		}
+	}
+
+	endusershell();
+
+	return ret;
+}
+
 int main(int cnt, char **args)
 {
 	uid_t uid, auid, euid;
@@ -90,35 +111,20 @@ execit:
 		    }
 	}
 
-#ifdef LATER
-	/*
-	 * Eventually handle this program being linked or symlinked
-	 * and that the shell is one of the shells in /etc/shells
-	 * Expect it to be installed as /sbin/radius/bash, etc.
-	 */
-	shell = strrchr(args[0], '/');
-	if (!shell)
-		shell = args[0];
 
-	if (*shell == '-') {
-		check = shell + 1;
+	/* If RADIUS_REDIRECT_SHELL is set (from /etc/environment) and contains a path present in
+	 * /etc/shells, execute that shell, otherwise default to bash */
+	if ((shell = getenv("RADIUS_REDIRECT_SHELL"))
+		&& shell_exists(shell)) {
+		snprintf(execshell, sizeof execshell, "%s", shell);
+	} else {
+		check = "vbash";
+		if (*args[0] == '-')
+			shell = "-vbash";
+		else
+			shell = "vbash";
+		snprintf(execshell, sizeof execshell, "/bin/%s", check);
 	}
-	else
-		check = shell;
-
-	/*  need to validate shell from basename is valid here */
-
-
-	/* should really check this against /etc/shell */
-	snprintf(execshell, sizeof execshell, "/bin/%s", check);
-#else
-	check = "vbash";
-	if (*args[0] == '-')
-		shell = "-vbash";
-	else
-		shell = "vbash";
-	snprintf(execshell, sizeof execshell, "/bin/%s", check);
-#endif
 
 	args[0] = shell;
 	snprintf(shellenv, sizeof shellenv, "SHELL=%s", execshell);
