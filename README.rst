@@ -1,8 +1,6 @@
 pam_radius
 ----------
 
-|BuildStatus|_
-
 This is the PAM to RADIUS authentication module.  It allows any
 Linux, OSX or Solaris machine to become a RADIUS client for
 authentication and password change requests.  You will need to supply
@@ -46,6 +44,3 @@ followed by ``make``.  If you've got some other weird make, you'll
 have to edit the Makefile to remove the GNU make directives.
 
 Alan DeKok <aland@freeradius.org>
-
-.. |BuildStatus| image:: https://travis-ci.org/FreeRADIUS/pam_radius.png?branch=master
-.. _BuildStatus: https://travis-ci.org/FreeRADIUS/pam_radius
