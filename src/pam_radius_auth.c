@@ -379,11 +379,40 @@ static void get_accounting_vector(AUTH_HDR * request, radius_server_t * server)
 /*
  * Verify the response from the server
  */
-static int verify_packet(char *secret, AUTH_HDR * response, AUTH_HDR * request)
+static int verify_packet(radius_server_t *server, AUTH_HDR *response, AUTH_HDR *request)
 {
 	MD5_CTX my_md5;
-	unsigned char calculated[AUTH_VECTOR_LEN];
-	unsigned char reply[AUTH_VECTOR_LEN];
+	uint8_t calculated[AUTH_VECTOR_LEN];
+	uint8_t reply[AUTH_VECTOR_LEN];
+	uint8_t *message_authenticator = NULL;
+	CONST uint8_t *attr, *end;
+	size_t secret_len = strlen(server->secret);
+
+	attr = response->data;
+	end = (uint8_t *) response + ntohs(response->length);
+
+	/*
+	 *	Check that the packet is well-formed, and find the Message-Authenticator.
+	 */
+	while (attr < end) {
+		size_t remaining = end - attr;
+
+		if (remaining < 2) return FALSE;
+
+		if (attr[1] < 2) return FALSE;
+
+		if (attr[1] > remaining) return FALSE;
+
+		if (attr[0] == PW_MESSAGE_AUTHENTICATOR) {
+			if (attr[1] != 18) return FALSE;
+
+			if (message_authenticator) return FALSE;
+
+			message_authenticator = (uint8_t *) response + (attr - (uint8_t *) response) + 2;
+		}
+
+		attr += attr[1];
+	}
 
 	/*
 	 * We could dispense with the memcpy, and do MD5's of the packet
@@ -394,27 +423,30 @@ static int verify_packet(char *secret, AUTH_HDR * response, AUTH_HDR * request)
 
 	/* MD5(response packet header + vector + response packet data + secret) */
 	MD5Init(&my_md5);
-	MD5Update(&my_md5, (unsigned char *)response, ntohs(response->length));
-
-	/*
-	 * This next bit is necessary because of a bug in the original Livingston
-	 * RADIUS server.       The authentication vector is *supposed* to be MD5'd
-	 * with the old password (as the secret) for password changes.
-	 * However, the old password isn't used.        The "authentication" vector
-	 * for the server reply packet is simply the MD5 of the reply packet.
-	 * Odd, the code is 99% there, but the old password is never copied
-	 * to the secret!
-	 */
-	if (*secret) {
-		MD5Update(&my_md5, (unsigned char *)secret, strlen(secret));
-	}
-
-	MD5Final(calculated, &my_md5);	/* set the final vector */
+	MD5Update(&my_md5, (uint8_t *) response, ntohs(response->length));
+	MD5Update(&my_md5, (CONST uint8_t *) server->secret, secret_len);
+	MD5Final(calculated, &my_md5);			/* set the final vector */
 
 	/* Did he use the same random vector + shared secret? */
-	if (memcmp(calculated, reply, AUTH_VECTOR_LEN) != 0) {
-		return FALSE;
-	}
+	if (memcmp(calculated, reply, AUTH_VECTOR_LEN) != 0) return FALSE;
+
+	if (!message_authenticator) return TRUE;
+
+	/*
+	 *	RFC2869 Section 5.14.
+	 *
+	 *	Message-Authenticator is calculated with the Request
+	 *	Authenticator (copied into the packet above), and with
+	 *	the Message-Authenticator attribute contents set to
+	 *	zero.
+	 */
+	memcpy(reply, message_authenticator, AUTH_VECTOR_LEN);
+	memset(message_authenticator, 0, AUTH_VECTOR_LEN);
+
+	hmac_md5(calculated, (uint8_t *) response, ntohs(response->length), (const uint8_t *) server->secret, secret_len);
+
+	if (memcmp(calculated, reply, AUTH_VECTOR_LEN) != 0) return FALSE;
+
 	return TRUE;
 }
 
@@ -1172,8 +1204,6 @@ static int talk_radius(radius_conf_t * conf, AUTH_HDR * request,
 
 					/* there's data, see if it's valid */
 				} else {
-					char *p = server->secret;
-
 					if ((ntohs(response->length) !=
 					     total_length)
 					    || (ntohs(response->length) >
@@ -1187,32 +1217,8 @@ static int talk_radius(radius_conf_t * conf, AUTH_HDR * request,
 						break;
 					}
 
-					/* Check if we have the data OK.
-					 * We should also check request->id */
-					if (password) {
-						if (old_password) {
-#ifdef LIVINGSTON_PASSWORD_VERIFY_BUG_FIXED
-							/* what it should be */
-							p = old_password;
-#else
-							/* what it really is */
-							p = "";
-#endif
-						}
-						/*
-						 * RFC 2139 p.6 says not do do this, but
-						 * the Livingston 1.16 server disagrees.
-						 * If the user says he wants the bug,
-						 * give in.
-						 */
-					} else { /* authentication request */
-						if (conf->accounting_bug) {
-							p = "";
-						}
-					}
-
 					if (!verify_packet
-					    (p, response, request)) {
+					    (server, response, request)) {
 						_pam_log(pamh, LOG_ERR,
 							 "response from server"
 							 " %s failed"
