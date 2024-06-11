@@ -1001,10 +1001,25 @@ static void build_radius_packet(AUTH_HDR * request, CONST char *user,
 	hostname[0] = '\0';
 	gethostname(hostname, sizeof(hostname) - 1);
 
-	request->length = htons(AUTH_HDR_LEN);
+	/*
+	 *	For Access-Request, create a random authentication
+	 *	vector, and always add a Message-Authenticator
+	 *	attribute.
+	 */
+	if (request->code == PW_AUTHENTICATION_REQUEST) {
+              uint8_t *attr = (uint8_t *) request + AUTH_HDR_LEN;
 
-	if (password) {		/* make a random authentication req vector */
-		get_random_vector(request->vector);
+	      get_random_vector(request->vector);
+
+              attr[0] = PW_MESSAGE_AUTHENTICATOR;
+              attr[1] = 18;
+              memset(attr + 2, 0, AUTH_VECTOR_LEN);
+	      conf->message_authenticator = attr + 2;
+
+              request->length = htons(AUTH_HDR_LEN + 18);
+	} else {
+		request->length = htons(AUTH_HDR_LEN);
+		conf->message_authenticator = NULL;
 	}
 
 	add_attribute(request, PW_USER_NAME, (unsigned char *)user,
@@ -1097,7 +1112,22 @@ static int talk_radius(radius_conf_t * conf, AUTH_HDR * request,
 		/* clear the response */
 		memset(response, 0, sizeof(AUTH_HDR));
 
-		if (!password) {	/* make an RFC 2139 p6 request authenticator */
+		/* only look up IP information as necessary */
+		retval = host2server(pamh, server);
+		if (retval != 0) {
+			_pam_log(pamh, LOG_ERR,
+				 "Failed looking up IP address for RADIUS server %s (error=%s)",
+				 server->hostname, gai_strerror(retval));
+			ok = FALSE;
+			goto next;		/* skip to the next server */
+		}
+
+		if (request->code == PW_AUTHENTICATION_REQUEST) {
+			hmac_md5(conf->message_authenticator, (uint8_t *) request, ntohs(request->length),
+				 (const uint8_t *) server->secret, strlen(server->secret));
+
+		} else {
+			/* make an RFC 2139 p6 request authenticator */
 			get_accounting_vector(request, server);
 		}
 
