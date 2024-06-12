@@ -158,6 +158,7 @@ typedef struct radius_conf_t {
 	char privusrmap[64];
 	int prompt_attribute;
 	int privilege_level;
+	int require_message_authenticator;
 	uint8_t *message_authenticator;
 } radius_conf_t;
 

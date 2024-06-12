@@ -131,6 +131,9 @@ static int _pam_parse(pam_handle_t * pamh, int argc, CONST char **argv,
 		} else if (!strncmp(*argv, "max_challenge=", 14)) {
 			conf->max_challenge = atoi(*argv + 14);
 
+		} else if (!strcmp(*argv, "require_message_authenticator")) {
+			conf->require_message_authenticator = TRUE;
+
 		} else {
 			_pam_log(pamh, LOG_WARNING, "unrecognized option '%s'",
 				 *argv);
@@ -379,7 +382,7 @@ static void get_accounting_vector(AUTH_HDR * request, radius_server_t * server)
 /*
  * Verify the response from the server
  */
-static int verify_packet(radius_server_t *server, AUTH_HDR *response, AUTH_HDR *request)
+static int verify_packet(radius_server_t *server, AUTH_HDR *response, AUTH_HDR *request, radius_conf_t *conf)
 {
 	MD5_CTX my_md5;
 	uint8_t calculated[AUTH_VECTOR_LEN];
@@ -412,6 +415,10 @@ static int verify_packet(radius_server_t *server, AUTH_HDR *response, AUTH_HDR *
 		}
 
 		attr += attr[1];
+	}
+
+	if ((request->code == PW_AUTHENTICATION_REQUEST) && conf->require_message_authenticator && !message_authenticator) {
+		return FALSE;
 	}
 
 	/*
@@ -1248,7 +1255,7 @@ static int talk_radius(radius_conf_t * conf, AUTH_HDR * request,
 					}
 
 					if (!verify_packet
-					    (server, response, request)) {
+					    (server, response, request, conf)) {
 						_pam_log(pamh, LOG_ERR,
 							 "response from server"
 							 " %s failed"
