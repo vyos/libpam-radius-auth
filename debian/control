@@ -1,22 +1,22 @@
-Source: libpam-radius-auth
-Maintainer: dev-support <dev-support@cumulusnetworks.com>
+Source: vyos-libpam-radius-auth
+Maintainer: VyOS maintainers <maintainers@vyos.io>
 Section: libs
 Priority: extra
 Standards-Version: 3.9.6
 Build-Depends: libpam0g-dev | libpam-dev, debhelper (>= 12), libaudit-dev, libcap-dev
 
-Package: libpam-radius-auth
+Package: vyos-libpam-radius-auth
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libaudit1, radius-shell
+Depends: ${shlibs:Depends}, ${misc:Depends}, libaudit1, vyos-radius-shell
 Description: PAM RADIUS client authentication module
  This is the PAM to RADIUS authentication module. It allows any PAM-capable
  machine to become a RADIUS client for authentication and accounting
  requests. You will, however, need to supply your own RADIUS server to
  perform the actual authentication
 
-Package: radius-shell
+Package: vyos-radius-shell
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libaudit1, libcap2-bin, libcap2, libnss-mapuser
+Depends: ${shlibs:Depends}, ${misc:Depends}, libaudit1, libcap2-bin, libcap2, vyos-libnss-mapuser
 Description: Shell front-end used for radius users.
  This provides a uid fixup program.  Due to the limitations of the
  RADIUS protocol, we can't tell whether a user is privileged until
