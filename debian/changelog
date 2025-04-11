@@ -1,3 +1,9 @@
+vyos-libpam-radius-auth (1.5.0-cl3u7.1) RELEASED; urgency=medium
+
+  * Package rename for dependency management purposes.
+
+ -- Daniil Baturin <daniil@vyos.io>  Wed, 09 Apr 2025 15:16:14 +0000
+
 libpam-radius-auth (1.5.0-cl3u7) RELEASED; urgency=low
   * Closes: CM-24829 - Fixed order setting vrf and binding to source address
 
