@@ -46,7 +46,3 @@ Mirror twin: `VyOS-Networks/libpam-radius-auth`. Canonical side is here. Active 
 
 - Renamed source/binary packages (`vyos-libpam-radius-auth`, `vyos-radius-shell`) on purpose — do not revert to upstream `libpam-radius-auth` package names without a coordinated change in `vyos-build-packages` and `vyos-1x` PAM templates.
 - The `Jenkinsfile` is upstream cruft; VyOS CI runs through GitHub Actions reusables in `vyos/.github`.
-
----
-
-This file is mirrored on Confluence: [`vyos/libpam-radius-auth`](https://internal.confluence.vyos.com/wiki/spaces/VYOS/pages/818479352). The Confluence page also carries the per-repo audit data (settings, workflows, secret counts, hygiene) that complements this CLAUDE.md. Edit either side; resync via the documentation pipeline.
