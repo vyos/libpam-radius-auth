@@ -13,10 +13,10 @@ VyOS fork of the upstream `pam_radius_auth` PAM module — turns any host into a
 ## Build / test / run
 
 ```sh
-autoreconf -i           # generate ./configure from configure.ac
+autoreconf -i           # generate./configure from configure.ac
 ./configure
 make
-dpkg-buildpackage -us -uc # produces vyos-libpam-radius-auth + vyos-radius-shell .debs
+dpkg-buildpackage -us -uc # produces vyos-libpam-radius-auth + vyos-radius-shell.debs
 ```
 
 No in-tree test runner. Configuration lives at `pam_radius_auth.conf`; man pages at `pam_radius_auth.5`/`.8`, `radius_shell.8`.
