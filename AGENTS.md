@@ -31,17 +31,13 @@ No in-tree test runner. Configuration lives at `pam_radius_auth.conf`; man pages
 
 ## Cross-repo context
 
-Authentication building block consumed by the VyOS image. Built by `VyOS-Networks/vyos-build-packages` and pulled into the ISO via `vyos/vyos-build`. Sibling auth repos: `libpam-tacplus`, `libnss-tacplus`, `libnss-mapuser`, `libtacplus-map`. Used by `vyos-1x` conf-mode scripts that wire `pam_radius` into `/etc/pam.d`.
+Authentication building block consumed by the VyOS image. Built by the internal build-packages workflow and pulled into the ISO via `vyos/vyos-build`. Sibling auth repos: `libpam-tacplus`, `libnss-tacplus`, `libnss-mapuser`, `libtacplus-map`. Used by `vyos-1x` conf-mode scripts that wire `pam_radius` into `/etc/pam.d`.
 
 ## Conventions
 
 - Default branch `current`; LTS branches `sagitta`/`circinus` when used.
 - Commit / PR title format: `component: T12345: description` (Phorge task ID at https://vyos.dev).
 - Treat as upstream-vendored: keep diffs against the original `pam_radius` minimal; large feature work goes in VyOS-specific glue rather than this fork.
-
-## Mirror relationship
-
-Mirror twin: `VyOS-Networks/libpam-radius-auth`. Canonical side is here. Active workflows: `cla-check.yml`, `pr-mirror-repo-sync.yml` — mirror pipeline IS wired up; merges to `current` propagate to the VyOS-Networks twin.
 
 ## Notes for future contributors
 
