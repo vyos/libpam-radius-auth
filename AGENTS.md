@@ -35,7 +35,7 @@ Authentication building block consumed by the VyOS image. Built by the internal 
 
 ## Conventions
 
-- Default branch `current`; LTS branches `sagitta`/`circinus` when used.
+- Default branch `rolling`; LTS branches `sagitta`/`circinus` when used.
 - Commit / PR title format: `component: T12345: description` (Phorge task ID at https://vyos.dev).
 - Treat as upstream-vendored: keep diffs against the original `pam_radius` minimal; large feature work goes in VyOS-specific glue rather than this fork.
 
